@@ -6,7 +6,6 @@
 
         public int Number { get; set; }
         public DateOnly Date { get; set; }
-        public bool TwoDaysWaybill { get; set; }
         public int Days { get; set; }
         public double Hours { get; set; }
 

@@ -8,7 +8,6 @@ namespace WaybillsAPI.Models
 
         public int Number { get; init; }
         public DateOnly Date { get; init; }
-        public bool TwoDaysWaybill { get; init; }
         public int Days { get; init; }
         public double Hours { get; init; }
 
@@ -39,7 +38,6 @@ namespace WaybillsAPI.Models
             Id = creationModel.Id;
             Number = creationModel.Number;
             Date = creationModel.Date;
-            TwoDaysWaybill = creationModel.TwoDaysWaybill;
             Days = creationModel.Days;
             Hours = creationModel.Hours;
             StartFuel = creationModel.StartFuel;
@@ -59,7 +57,7 @@ namespace WaybillsAPI.Models
             Earnings = Math.Round(Calculations.Sum(x => x.Sum), 2);
         }
 
-        public string FullDate => TwoDaysWaybill ? Date.ToString($"d—{Date.Day + 1} MMMM yyyy") : Date.ToString($"d MMMM yyyy");
+        public string FullDate => Days == 2 ? Date.ToString($"d—{Date.Day + 1} MMMM yyyy") : Date.ToString($"d MMMM yyyy");
         public string DriverShortFullName => Driver is null ? "" : Driver.ShortFullName();
         public string TransportName => Transport is null ? "" : Transport.Name;
     }
