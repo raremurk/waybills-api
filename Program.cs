@@ -1,11 +1,15 @@
 using WaybillsAPI.Context;
+using WaybillsAPI.Interfaces;
 using WaybillsAPI.Mappings;
+using WaybillsAPI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<WaybillsContext>();
 builder.Services.AddAutoMapper(typeof(MappingProfile));
 builder.Services.AddControllers();
+
+builder.Services.AddSingleton<IExcelWriter, ExcelWriter>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
