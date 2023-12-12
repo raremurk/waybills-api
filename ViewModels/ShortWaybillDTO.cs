@@ -5,7 +5,7 @@
         public int Id { get; set; }
 
         public int Number { get; set; }
-        public string Date { get; set; }
+        public DateOnly Date { get; set; }
         public int Days { get; set; }
         public double Hours { get; set; }
 

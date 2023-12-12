@@ -15,8 +15,7 @@ namespace WaybillsAPI.Mappings
             CreateMap<Waybill, WaybillCreation>();
             CreateMap<Operation, OperationCreation>();
             CreateMap<Calculation, CalculationCreation>();
-            CreateMap<Waybill, ShortWaybillDTO>()
-                .ForMember("Date", opt => opt.MapFrom(x => x.FullDate));
+            CreateMap<Waybill, ShortWaybillDTO>();
             CreateMap<Operation, OperationDTO>().ReverseMap();
             CreateMap<Calculation, CalculationDTO>().ReverseMap();
         }
