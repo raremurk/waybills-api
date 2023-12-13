@@ -1,5 +1,4 @@
-﻿using AutoMapper;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WaybillsAPI.Context;
 using WaybillsAPI.Interfaces;
@@ -9,17 +8,16 @@ namespace WaybillsAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class ReportsController(WaybillsContext context, IMapper mapper, IExcelWriter writer) : ControllerBase
+    public class ReportsController(WaybillsContext context, IExcelWriter writer) : ControllerBase
     {
         private readonly WaybillsContext _context = context;
-        private readonly IMapper _mapper = mapper;
         private readonly IExcelWriter _writer = writer;
 
-        [HttpGet("reports/{month}")]
-        public async Task<ActionResult<IEnumerable<CostCodeInfo>>> GetReport(int month)
+        [HttpGet("costCode/{year}/{month}")]
+        public async Task<ActionResult<IEnumerable<CostCodeInfo>>> GetReport(int year, int month)
         {
             var waybills = await _context.Waybills
-                .Where(x => x.Date.Month == month)
+                .Where(x => x.Date.Year == year && x.Date.Month == month)
                 .Include(x => x.Operations).ToListAsync();
 
             var costPrices = new Dictionary<string, CostCodeInfo>();
@@ -44,17 +42,6 @@ namespace WaybillsAPI.Controllers
                 x.CostPrice = Math.Round(x.ConditionalReferenceHectares * 27, 2);
             });
             return report;
-        }
-
-        [HttpGet]
-        public async Task<ActionResult> GetWaybills()
-        {
-            var waybills = await _context.Waybills
-                .Include(x => x.Driver)
-                .Include(x => x.Transport)
-                .Include(x => x.Operations)
-                .Include(x => x.Calculations).ToListAsync();
-            return File(_writer.Generate(waybills), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Report.xlsx");
         }
     }
 }

@@ -1,8 +1,10 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 using WaybillsAPI.Context;
 using WaybillsAPI.CreationModels;
+using WaybillsAPI.Interfaces;
 using WaybillsAPI.Models;
 using WaybillsAPI.ViewModels;
 
@@ -10,15 +12,17 @@ namespace WaybillsAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class WaybillsController(WaybillsContext context, IMapper mapper) : ControllerBase
+    public class WaybillsController(WaybillsContext context, IMapper mapper, IExcelWriter writer) : ControllerBase
     {
         private readonly WaybillsContext _context = context;
         private readonly IMapper _mapper = mapper;
+        private readonly IExcelWriter _writer = writer;
 
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<ShortWaybillDTO>>> GetWaybills()
+        [HttpGet("{year}/{month}/{driverId?}")]
+        public async Task<ActionResult<IEnumerable<ShortWaybillDTO>>> GetWaybills(int year, int month, int driverId = 0)
         {
             var waybills = await _context.Waybills
+                .Where(x => x.Date.Year == year && x.Date.Month == month && (driverId == 0 || x.DriverId == driverId))
                 .Include(x => x.Driver)
                 .Include(x => x.Transport).ToListAsync();
 
@@ -26,16 +30,25 @@ namespace WaybillsAPI.Controllers
             return waybillsDTO;
         }
 
-        [HttpGet("driver/{driverId}")]
-        public async Task<ActionResult<IEnumerable<ShortWaybillDTO>>> GetDriverWaybills(int driverId)
+        [HttpGet("excel/{year}/{month}/{driverId}")]
+        public async Task<ActionResult> GetExcelWithWaybills(int year, int month, int driverId)
         {
-            var waybills = await _context.Waybills
-                .Where(x => x.DriverId == driverId)
-                .Include(x => x.Driver)
-                .Include(x => x.Transport).ToListAsync();
+            var driver = await _context.Drivers.FindAsync(driverId);
+            if (driver == null)
+            {
+                return Problem("Водителя с заданным ID не существует.");
+            }
+            var fileName = $"{driver.ShortFullName()}_{CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(month)}_{year}.xlsx";
+            var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
-            var waybillsDTO = _mapper.Map<List<Waybill>, List<ShortWaybillDTO>>(waybills);
-            return waybillsDTO;
+            var waybills = await _context.Waybills
+                .Where(x => x.Date.Year == year && x.Date.Month == month && x.DriverId == driverId)
+                .Include(x => x.Driver)
+                .Include(x => x.Transport)
+                .Include(x => x.Operations)
+                .Include(x => x.Calculations)
+                .OrderBy(x => x.Date).ToListAsync();
+            return File(_writer.Generate(waybills), contentType, fileName);
         }
 
         [HttpGet("{id}")]
