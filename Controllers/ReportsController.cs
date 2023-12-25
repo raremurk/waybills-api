@@ -17,7 +17,7 @@ namespace WaybillsAPI.Controllers
         public async Task<ActionResult<IEnumerable<CostCodeInfo>>> GetReport(int year, int month)
         {
             var waybills = await _context.Waybills
-                .Where(x => x.Date.Year == year && x.Date.Month == month)
+                .Where(x => x.SalaryYear == year && x.SalaryMonth == month)
                 .Include(x => x.Operations).ToListAsync();
 
             var costPrices = new Dictionary<string, CostCodeInfo>();

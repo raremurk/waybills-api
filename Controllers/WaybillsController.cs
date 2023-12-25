@@ -22,7 +22,7 @@ namespace WaybillsAPI.Controllers
         public async Task<ActionResult<IEnumerable<ShortWaybillDTO>>> GetWaybills(int year, int month, int driverId = 0)
         {
             var waybills = await _context.Waybills
-                .Where(x => x.Date.Year == year && x.Date.Month == month && (driverId == 0 || x.DriverId == driverId))
+                .Where(x => x.SalaryYear == year && x.SalaryMonth == month && (driverId == 0 || x.DriverId == driverId))
                 .Include(x => x.Driver)
                 .Include(x => x.Transport).ToListAsync();
 
@@ -42,7 +42,7 @@ namespace WaybillsAPI.Controllers
             var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
             var waybills = await _context.Waybills
-                .Where(x => x.Date.Year == year && x.Date.Month == month && x.DriverId == driverId)
+                .Where(x => x.SalaryYear == year && x.SalaryMonth == month && x.DriverId == driverId)
                 .Include(x => x.Driver)
                 .Include(x => x.Transport)
                 .Include(x => x.Operations)
@@ -83,7 +83,7 @@ namespace WaybillsAPI.Controllers
             {
                 return Problem("Транспорта с заданным ID не существует.");
             }
-            var waybill = new Waybill(waybillCreation, transport.Coefficient);
+            var waybill = new Waybill(waybillCreation, GetCurrentDate(), transport.Coefficient);
 
             var existingWaybill = _context.Waybills
                 .Include(p => p.Operations)
@@ -120,11 +120,6 @@ namespace WaybillsAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<WaybillDTO>> PostWaybill(WaybillCreation waybillCreation)
         {
-            if (_context.Waybills.Any(x => x.Number == waybillCreation.Number))
-            {
-                return Problem($"Путевой лист №{waybillCreation.Number} уже существует.");
-            }
-
             if (!_context.Drivers.Any(x => x.Id == waybillCreation.DriverId))
             {
                 return Problem("Водителя с заданным ID не существует.");
@@ -136,7 +131,13 @@ namespace WaybillsAPI.Controllers
                 return Problem("Транспорта с заданным ID не существует.");
             }
 
-            var waybill = new Waybill(waybillCreation, transport.Coefficient);
+            var waybill = new Waybill(waybillCreation, GetCurrentDate(), transport.Coefficient);
+
+            if (_context.Waybills.Any(x => x.Number == waybill.Number && x.SalaryYear == waybill.SalaryYear))
+            {
+                return Problem($"Путевой лист №{waybillCreation.Number} уже существует в {waybill.SalaryYear} году.");
+            }
+
             _context.Waybills.Add(waybill);
             await _context.SaveChangesAsync();
             var createdWaybill = _mapper.Map<Waybill, WaybillDTO>(waybill);
@@ -163,5 +164,7 @@ namespace WaybillsAPI.Controllers
         {
             return _context.Waybills.Any(e => e.Id == id);
         }
+
+        private static DateOnly GetCurrentDate() => DateOnly.FromDateTime(DateTime.UtcNow);
     }
 }
