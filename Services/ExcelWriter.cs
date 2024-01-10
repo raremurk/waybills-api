@@ -9,11 +9,14 @@ namespace WaybillsAPI.Services
     {
         public byte[] Generate(List<Waybill> waybills)
         {
-            var total = GetWaybillsTotal(waybills);
+            var total = new MonthTotal(waybills);
 
             var package = new ExcelPackage();
 
             var sheet = package.Workbook.Worksheets.Add("Путевые листы");
+            sheet.PrinterSettings.HeaderMargin = sheet.PrinterSettings.FooterMargin = 0M;
+            sheet.PrinterSettings.LeftMargin = sheet.PrinterSettings.RightMargin = 0.7M;
+            sheet.PrinterSettings.TopMargin = sheet.PrinterSettings.BottomMargin = 0.2M;
             sheet.Cells.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
             sheet.Cells.Style.Font.Name = "Times New Roman";
             sheet.Cells.Style.Font.Size = 8;
@@ -31,24 +34,26 @@ namespace WaybillsAPI.Services
             sheet.Column(12).Width = GetTrueColumnWidth(7);
             sheet.Column(13).Width = GetTrueColumnWidth(7);
 
+            sheet.DefaultRowHeight = 9;
             sheet.Row(1).Height = 12;
             sheet.Row(2).Height = 12;
             sheet.Row(3).Height = 9;
-            sheet.Row(4).Height = 21.75;
-            sheet.Row(5).Height = 12;
+            sheet.Row(4).Height = 9;
+            sheet.Row(5).Height = 9;
+            sheet.Row(6).Height = 12;
 
-            sheet.Cells["A1:M5"].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-            sheet.Cells["A1:M5"].Style.WrapText = true;
-            sheet.Cells["A5:M5"].Style.Font.Bold = true;
+            sheet.Cells["A1:M6"].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            sheet.Cells["A1:M6"].Style.WrapText = true;
+            sheet.Cells["A6:M6"].Style.Font.Bold = true;
 
-            sheet.Cells["A1:M5"].Style.Border.Left.Style = ExcelBorderStyle.Thin;
-            sheet.Cells["A1:M5"].Style.Border.Top.Style = ExcelBorderStyle.Thin;
-            sheet.Cells["A1:M5"].Style.Border.Right.Style = ExcelBorderStyle.Thin;
-            sheet.Cells["A1:M5"].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+            sheet.Cells["A1:M6"].Style.Border.Left.Style = ExcelBorderStyle.Thin;
+            sheet.Cells["A1:M2, A3:F6, G3, G4, G6, H3:J6, K3, K6, L3:M6"].Style.Border.Top.Style = ExcelBorderStyle.Thin;
+            sheet.Cells["M1:M6"].Style.Border.Right.Style = ExcelBorderStyle.Thin;
+            sheet.Cells["A6:M6"].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
 
             sheet.Cells["A1:E2, F1:G2, H1:I2, J1:K1, J2:K2, L1:M1, L2:M2"].Merge = true;
-            sheet.Cells["A3:B4, C3:C4, D3:D4, E3:E4, F3:G3, H3:I4, J3:J4, K3:K4, L3:M3"].Merge = true;
-            sheet.Cells["A5:B5, H5:I5"].Merge = true;
+            sheet.Cells["A3:B5, C3:C5, D3:D5, E3:E5, F3:G3, F4:F5, H3:I5, J3:J5, L3:M3, L4:L5, M4:M5"].Merge = true;
+            sheet.Cells["A6:B6, H6:I6"].Merge = true;
 
             sheet.Cells["A1"].Value = "Итого";
             sheet.Cells["A1"].Style.Font.Size = 18;
@@ -75,35 +80,39 @@ namespace WaybillsAPI.Services
             sheet.Cells["E3"].Value = "Число ездок";
             sheet.Cells["F3"].Value = "Пробег";
             sheet.Cells["F4"].Value = "Всего";
-            sheet.Cells["G4"].Value = "В т.ч. с грузом";
+            sheet.Cells["G4"].Value = "В т.ч. с";
+            sheet.Cells["G5"].Value = "грузом";
             sheet.Cells["H3"].Value = "Перевезено груза, тонн";
             sheet.Cells["J3"].Value = "Нормо-смена";
-            sheet.Cells["K3"].Value = "Условный эталонный гектар";
+            sheet.Cells["K3"].Value = "Условный";
+            sheet.Cells["K4"].Value = "эталонный";
+            sheet.Cells["K5"].Value = "гектар";
             sheet.Cells["L3"].Value = "Расход ГСМ";
             sheet.Cells["L4"].Value = "По факту";
             sheet.Cells["M4"].Value = "По норме";
 
-            sheet.Cells["A5"].Value = total.WaybillsCount;
-            sheet.Cells["C5"].Value = total.Days;
-            sheet.Cells["D5"].Value = total.Hours;
-            sheet.Cells["E5"].Value = total.NumberOfRuns;
-            sheet.Cells["F5"].Value = total.TotalMileage;
-            sheet.Cells["G5"].Value = total.TotalMileageWithLoad;
-            sheet.Cells["H5"].Value = total.TransportedLoad;
-            sheet.Cells["J5"].Value = total.NormShift;
-            sheet.Cells["K5"].Value = total.ConditionalReferenceHectares;
-            sheet.Cells["L5"].Value = total.FactFuelConsumption;
-            sheet.Cells["M5"].Value = total.NormalFuelConsumption;
+            sheet.Cells["A6"].Value = total.WaybillsCount;
+            sheet.Cells["C6"].Value = total.Days;
+            sheet.Cells["D6"].Value = total.Hours;
+            sheet.Cells["E6"].Value = total.NumberOfRuns;
+            sheet.Cells["F6"].Value = total.TotalMileage;
+            sheet.Cells["G6"].Value = total.TotalMileageWithLoad;
+            sheet.Cells["H6"].Value = total.TransportedLoad;
+            sheet.Cells["J6"].Value = total.NormShift;
+            sheet.Cells["K6"].Value = total.ConditionalReferenceHectares;
+            sheet.Cells["L6"].Value = total.FactFuelConsumption;
+            sheet.Cells["M6"].Value = total.NormalFuelConsumption;
 
-            var index = 5;
-            var pageHeight = 66.75;
+            var index = 6;
+            var pageHeight = 63;
+            var maxPageHeight = 838;
             foreach (var waybill in waybills)
             {
-                var waybillHeight = 113.25 + waybill.Operations.Count * 9;
-                if (pageHeight + waybillHeight > 756)
+                var waybillHeight = 108 + waybill.Operations.Count * 9;
+                if (pageHeight + waybillHeight > maxPageHeight)
                 {
                     sheet.Row(index).PageBreak = true;
-                    pageHeight = waybillHeight;
+                    pageHeight = waybillHeight - 9;
                 }
                 else
                 {
@@ -114,15 +123,15 @@ namespace WaybillsAPI.Services
 
                 sheet.Cells[$"A{index}:M{index + 2}"].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
 
-                sheet.Cells[$"A{index}:M{index}"].Style.Border.Top.Style = ExcelBorderStyle.Medium;
                 sheet.Cells[$"A{index}:M{index + 2}"].Style.Border.Left.Style = ExcelBorderStyle.Thin;
-                sheet.Cells[$"A{index}:M{index + 2}"].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+                sheet.Cells[$"A{index}:M{index}"].Style.Border.Top.Style = ExcelBorderStyle.Medium;
                 sheet.Cells[$"M{index}:M{index + 2}"].Style.Border.Right.Style = ExcelBorderStyle.Thin;
+                sheet.Cells[$"A{index}:M{index + 2}"].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
 
                 sheet.Row(index).Height = 9;
                 sheet.Row(index + 1).Height = 9;
                 sheet.Row(index + 2).Height = 9;
-                sheet.Row(index + 3).Height = 6;
+                sheet.Row(index + 3).Height = 4.5;
                 sheet.Row(index + 4).Height = 9;
                 sheet.Row(index + 5).Height = 9;
                 sheet.Row(index + 6).Height = 9;
@@ -169,13 +178,7 @@ namespace WaybillsAPI.Services
                 sheet.Cells[$"L{index}"].Value = waybill.FactFuelConsumption;
                 sheet.Cells[$"M{index}"].Value = waybill.NormalFuelConsumption;
 
-                sheet.Cells[$"A{index}"].Style.Font.Bold = true;
-                sheet.Cells[$"H{index}"].Style.Font.Bold = true;
-                sheet.Cells[$"I{index}"].Style.Font.Bold = true;
-                sheet.Cells[$"J{index}"].Style.Font.Bold = true;
-                sheet.Cells[$"K{index}"].Style.Font.Bold = true;
-                sheet.Cells[$"L{index}"].Style.Font.Bold = true;
-                sheet.Cells[$"M{index}"].Style.Font.Bold = true;
+                sheet.Cells[$"A{index}, H{index}:M{index}"].Style.Font.Bold = true;
 
                 index += 2;
 
@@ -196,10 +199,9 @@ namespace WaybillsAPI.Services
 
                 sheet.Cells[$"A{index}:M{index + 2}"].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
 
-                sheet.Cells[$"A{index}:M{index}"].Style.Border.Top.Style = ExcelBorderStyle.Thin;
                 sheet.Cells[$"A{index}:M{index + 2}"].Style.Border.Left.Style = ExcelBorderStyle.Thin;
+                sheet.Cells[$"A{index}:j{index + 1}, K{index}, L{index}:M{index + 1}"].Style.Border.Top.Style = ExcelBorderStyle.Thin;
                 sheet.Cells[$"M{index}:M{index + 2}"].Style.Border.Right.Style = ExcelBorderStyle.Thin;
-                sheet.Cells[$"C{index}:D{index}, F{index}:I{index}, L{index}:M{index}"].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
 
                 sheet.Cells[$"A{index}"].Value = "ШПЗ";
                 sheet.Cells[$"B{index}"].Style.WrapText = true;
@@ -233,10 +235,9 @@ namespace WaybillsAPI.Services
                 {
                     sheet.Row(index).Height = 9;
                     sheet.Row(index).Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
-                    sheet.Cells[$"A{index}:M{index}"].Style.Border.Top.Style = ExcelBorderStyle.Thin;
                     sheet.Cells[$"A{index}:M{index}"].Style.Border.Left.Style = ExcelBorderStyle.Thin;
-                    sheet.Cells[$"A{index}:M{index}"].Style.Border.Right.Style = ExcelBorderStyle.Thin;
-                    sheet.Cells[$"A{index}:M{index}"].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+                    sheet.Cells[$"A{index}:M{index}"].Style.Border.Top.Style = ExcelBorderStyle.Thin;
+                    sheet.Cells[$"M{index}"].Style.Border.Right.Style = ExcelBorderStyle.Thin;
                     sheet.Cells[$"H{index}:I{index}"].Merge = true;
                     sheet.Cells[$"A{index}"].Value = operation.ProductionCostCode;
                     sheet.Cells[$"B{index}"].Value = operation.NumberOfRuns;
@@ -254,14 +255,13 @@ namespace WaybillsAPI.Services
                     index++;
                 }
 
-                sheet.Row(index).Height = 6;
+                sheet.Cells[$"A{index}:M{index}"].Style.Border.Top.Style = ExcelBorderStyle.Thin;
+                sheet.Row(index).Height = 4.5;
                 index++;
                 sheet.Row(index).Height = 9;
                 sheet.Row(index + 1).Height = 9;
                 sheet.Row(index + 2).Height = 9;
                 sheet.Row(index + 3).Height = 9;
-
-                sheet.Cells[$"A{index + 1}:H{index + 3}"].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
 
                 sheet.Cells[$"B{index}:C{index}"].Merge = true;
                 sheet.Cells[$"B{index + 1}:C{index + 1}"].Merge = true;
@@ -294,21 +294,12 @@ namespace WaybillsAPI.Services
                 sheet.Cells[$"L{index + 1}"].Value = "Выходные";
                 sheet.Cells[$"M{index + 1}"].Value = "Премия";
 
-                sheet.Cells[$"A{index}:M{index}"].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-                sheet.Cells[$"I{index + 1}:M{index + 2}"].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-                sheet.Cells[$"A{index}:J{index + 3}"].Style.Border.Top.Style = ExcelBorderStyle.Thin;
-                sheet.Cells[$"A{index}:J{index + 3}"].Style.Border.Left.Style = ExcelBorderStyle.Thin;
-                sheet.Cells[$"A{index}:J{index + 3}"].Style.Border.Right.Style = ExcelBorderStyle.Thin;
-                sheet.Cells[$"A{index}:J{index + 3}"].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+                sheet.Cells[$"A{index}:H{index}, I{index}:M{index + 2}"].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
 
-                sheet.Cells[$"K{index}"].Style.Border.Top.Style = ExcelBorderStyle.Thin;
-                sheet.Cells[$"K{index + 2}"].Style.Border.Top.Style = ExcelBorderStyle.Thin;
-                sheet.Cells[$"K{index + 3}"].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
-
-                sheet.Cells[$"L{index}:M{index + 3}"].Style.Border.Top.Style = ExcelBorderStyle.Thin;
-                sheet.Cells[$"L{index}:M{index + 3}"].Style.Border.Left.Style = ExcelBorderStyle.Thin;
-                sheet.Cells[$"L{index}:M{index + 3}"].Style.Border.Right.Style = ExcelBorderStyle.Thin;
-                sheet.Cells[$"L{index}:M{index + 3}"].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+                sheet.Cells[$"A{index}:M{index + 3}"].Style.Border.Left.Style = ExcelBorderStyle.Thin;
+                sheet.Cells[$"A{index}:J{index + 3}, K{index}, K{index + 2}, L{index}:M{index + 2}"].Style.Border.Top.Style = ExcelBorderStyle.Thin;
+                sheet.Cells[$"M{index}:M{index + 3}"].Style.Border.Right.Style = ExcelBorderStyle.Thin;
+                sheet.Cells[$"A{index + 3}:M{index + 3}"].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
 
                 for (int i = 0; i < waybill.Calculations.Count; i++)
                 {
@@ -325,49 +316,18 @@ namespace WaybillsAPI.Services
                     sheet.Cells[$"H{index + i - 2}"].Value = waybill.Calculations[i].Sum;
                 }
 
-                sheet.Cells[$"I{index + 2}"].Style.Font.Bold = true;
-                sheet.Cells[$"J{index + 2}"].Style.Font.Bold = true;
-                sheet.Cells[$"K{index + 2}"].Style.Font.Bold = true;
-                sheet.Cells[$"L{index + 2}"].Style.Font.Bold = true;
-                sheet.Cells[$"M{index + 2}"].Style.Font.Bold = true;
+                index += 2;
 
-                sheet.Cells[$"I{index + 2}"].Value = waybill.Days;
-                sheet.Cells[$"J{index + 2}"].Value = waybill.Hours;
-                sheet.Cells[$"K{index + 2}"].Value = waybill.Earnings;
-                sheet.Cells[$"L{index + 2}"].Value = waybill.Weekend;
-                sheet.Cells[$"M{index + 2}"].Value = waybill.Bonus;
+                sheet.Cells[$"I{index}:M{index}"].Style.Font.Bold = true;
+                sheet.Cells[$"I{index}"].Value = waybill.Days;
+                sheet.Cells[$"J{index}"].Value = waybill.Hours;
+                sheet.Cells[$"K{index}"].Value = waybill.Earnings;
+                sheet.Cells[$"L{index}"].Value = waybill.Weekend;
+                sheet.Cells[$"M{index}"].Value = waybill.Bonus;
 
-                index += 3;
+                index++;
             }
             return package.GetAsByteArray();
-        }
-
-        private WaybillsTotal GetWaybillsTotal(List<Waybill> waybills)
-        {
-            var total = new WaybillsTotal();
-            foreach (var waybill in waybills)
-            {
-                total.Earnings += waybill.Earnings;
-                total.Weekend += waybill.Weekend;
-                total.Bonus += waybill.Bonus;
-                total.WaybillsCount++;
-                total.Days += waybill.Days;
-                total.Hours += waybill.Hours;
-                total.ConditionalReferenceHectares += waybill.ConditionalReferenceHectares;
-                total.FactFuelConsumption += waybill.FactFuelConsumption;
-                total.NormalFuelConsumption += waybill.NormalFuelConsumption;
-
-                foreach (var operation in waybill.Operations)
-                {
-                    total.NumberOfRuns += operation.NumberOfRuns;
-                    total.TotalMileage += operation.TotalMileage;
-                    total.TotalMileageWithLoad += operation.TotalMileageWithLoad;
-                    total.TransportedLoad += operation.TransportedLoad;
-                    total.NormShift += operation.NormShift;
-                }
-            }
-
-            return total;
         }
 
         private static double GetTrueColumnWidth(double width)
@@ -404,24 +364,6 @@ namespace WaybillsAPI.Services
             }
 
             return 0d;
-        }
-
-        private class WaybillsTotal
-        {
-            public double Earnings { get; set; }
-            public double Weekend { get; set; }
-            public double Bonus { get; set; }
-            public int WaybillsCount { get; set; }
-            public int Days { get; set; }
-            public double Hours { get; set; }
-            public int NumberOfRuns { get; set; }
-            public double TotalMileage { get; set; }
-            public double TotalMileageWithLoad { get; set; }
-            public double TransportedLoad { get; set; }
-            public double NormShift { get; set; }
-            public double ConditionalReferenceHectares { get; set; }
-            public int FactFuelConsumption { get; set; }
-            public int NormalFuelConsumption { get; set; }
         }
     }
 }
