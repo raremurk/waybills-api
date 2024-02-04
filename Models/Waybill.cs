@@ -1,7 +1,9 @@
-﻿using WaybillsAPI.CreationModels;
+﻿using Microsoft.EntityFrameworkCore;
+using WaybillsAPI.CreationModels;
 
 namespace WaybillsAPI.Models
 {
+    [Index(nameof(Number), nameof(SalaryYear), IsUnique = true)]
     public class Waybill
     {
         public int Id { get; private set; }

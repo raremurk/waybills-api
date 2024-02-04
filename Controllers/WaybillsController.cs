@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using WaybillsAPI.Context;
@@ -139,7 +140,15 @@ namespace WaybillsAPI.Controllers
             }
 
             _context.Waybills.Add(waybill);
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is SqliteException s && s.SqliteExtendedErrorCode == 2067)
+            {
+                return Problem($"Ошибка сохранения (такой путевой лист уже был создан).");
+            }
+
             var createdWaybill = _mapper.Map<Waybill, WaybillDTO>(waybill);
 
             return CreatedAtAction("GetWaybill", new { id = createdWaybill.Id }, createdWaybill);
