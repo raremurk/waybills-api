@@ -17,7 +17,7 @@ namespace WaybillsAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<DriverDTO>>> GetDrivers()
         {
-            var drivers = await _context.Drivers.ToListAsync();
+            var drivers = await _context.Drivers.OrderBy(x => x.LastName).ToListAsync();
             var driversDTO = _mapper.Map<List<Driver>, List<DriverDTO>>(drivers);
             return driversDTO;
         }

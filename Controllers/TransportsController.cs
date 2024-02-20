@@ -17,7 +17,7 @@ namespace WaybillsAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TransportDTO>>> GetTransport()
         {
-            var transport = await _context.Transport.ToListAsync();
+            var transport = await _context.Transport.OrderBy(x => x.Name).ToListAsync();
             var transportDTO = _mapper.Map<List<Transport>, List<TransportDTO>>(transport);
             return transportDTO;
         }

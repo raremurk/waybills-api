@@ -2,6 +2,7 @@
 using OfficeOpenXml.Style;
 using WaybillsAPI.Interfaces;
 using WaybillsAPI.Models;
+using WaybillsAPI.ReportsModels;
 
 namespace WaybillsAPI.Services
 {

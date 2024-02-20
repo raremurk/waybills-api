@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using WaybillsAPI.Context;
 using WaybillsAPI.Interfaces;
+using WaybillsAPI.ReportsModels;
 using WaybillsAPI.ViewModels;
 
 namespace WaybillsAPI.Controllers
@@ -13,35 +14,52 @@ namespace WaybillsAPI.Controllers
         private readonly WaybillsContext _context = context;
         private readonly IExcelWriter _writer = writer;
 
-        [HttpGet("costCode/{year}/{month}")]
-        public async Task<ActionResult<IEnumerable<CostCodeInfo>>> GetReport(int year, int month)
+        [HttpGet("costCode/{year}/{month}/{price}")]
+        public async Task<ActionResult<IEnumerable<CostCodeInfo>>> GetReport(int year, int month, double price)
         {
             var waybills = await _context.Waybills
                 .Where(x => x.SalaryYear == year && x.SalaryMonth == month)
                 .Include(x => x.Operations).ToListAsync();
 
-            var costPrices = new Dictionary<string, CostCodeInfo>();
+            var costPrices = new Dictionary<string, CostCodeInfoCreation>();
             foreach (var waybill in waybills)
             {
                 foreach (var operation in waybill.Operations)
                 {
-                    if (costPrices.TryGetValue(operation.ProductionCostCode, out CostCodeInfo? value))
+                    if (operation.Norm == 0)
                     {
-                        value.ConditionalReferenceHectares += operation.ConditionalReferenceHectares;
                         continue;
                     }
-                    var costPrice = new CostCodeInfo(operation.ProductionCostCode, operation.ConditionalReferenceHectares);
-                    costPrices.Add(operation.ProductionCostCode, costPrice);
+                    if (costPrices.TryGetValue(operation.ProductionCostCode, out CostCodeInfoCreation? value))
+                    {
+                        value.ConditionalReferenceHectares += operation.ConditionalReferenceHectares;
+                        value.WaybillIdentifiers.TryAdd(waybill.Id, waybill.Number);
+                        continue;
+                    }
+                    costPrices.Add(operation.ProductionCostCode, new(operation.ConditionalReferenceHectares, waybill.Id, waybill.Number));
                 }
             }
 
-            var report = costPrices.Values.OrderBy(x => x.ProductionCostCode).ToList();
-            report.ForEach(x =>
-            {
-                x.ConditionalReferenceHectares = Math.Round(x.ConditionalReferenceHectares, 2);
-                x.CostPrice = Math.Round(x.ConditionalReferenceHectares * 27, 2);
-            });
+            var report = costPrices.Select(x => new CostCodeInfo(x.Key, x.Value, price)).OrderBy(c => c.ProductionCostCode).ToList();
             return report;
+        }
+
+        [HttpGet("monthTotal/{year}/{month}")]
+        public async Task<ActionResult<IEnumerable<DriverMonthTotal>>> GetMonthTotal(int year, int month)
+        {
+            var waybills = await _context.Waybills
+                .Where(x => x.SalaryYear == year && x.SalaryMonth == month)
+                .Include(x => x.Operations).ToListAsync();
+
+            var drivers = await _context.Drivers.ToDictionaryAsync(x => x.Id);
+            var transports = await _context.Transport.ToDictionaryAsync(x => x.Id);
+
+            var driverMonthTotals = waybills
+                .GroupBy(x => x.DriverId)
+                .Select(x => new DriverMonthTotal(drivers[x.Key], x.GroupBy(x => x.TransportId).Select(x => new TransportMonthTotal(transports[x.Key], [.. x])).ToList()))
+                .OrderBy(x => x.DriverFullName).ToList();
+
+            return driverMonthTotals;
         }
     }
 }
