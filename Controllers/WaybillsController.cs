@@ -13,11 +13,12 @@ namespace WaybillsAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class WaybillsController(WaybillsContext context, IMapper mapper, IExcelWriter writer) : ControllerBase
+    public class WaybillsController(WaybillsContext context, IMapper mapper, IExcelWriter writer, IDateService dateService) : ControllerBase
     {
         private readonly WaybillsContext _context = context;
         private readonly IMapper _mapper = mapper;
         private readonly IExcelWriter _writer = writer;
+        private readonly IDateService _dateService = dateService;
 
         [HttpGet("{year}/{month}/{driverId?}")]
         public async Task<ActionResult<IEnumerable<ShortWaybillDTO>>> GetWaybills(int year, int month, int driverId = 0)
@@ -72,32 +73,40 @@ namespace WaybillsAPI.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutWaybill(int id, WaybillCreation waybillCreation)
+        public async Task<ActionResult<WaybillDTO>> PutWaybill(int id, WaybillCreation waybillCreation)
         {
             if (id != waybillCreation.Id)
             {
                 return BadRequest();
             }
 
-            var transport = _context.Transport.Find(waybillCreation.TransportId);
-            if (transport is null)
-            {
-                return Problem("Транспорта с заданным ID не существует.");
-            }
-            var waybill = new Waybill(waybillCreation, GetCurrentDate(), transport.Coefficient);
-
             var existingWaybill = _context.Waybills
                 .Include(p => p.Operations)
                 .Include(p => p.Calculations)
                 .FirstOrDefault(p => p.Id == id);
-            if (existingWaybill != null)
+            if (existingWaybill is null)
             {
-                _context.Entry(existingWaybill).CurrentValues.SetValues(waybill);
-                existingWaybill.Operations.Clear();
-                existingWaybill.Calculations.Clear();
-                existingWaybill.Operations.AddRange(waybill.Operations);
-                existingWaybill.Calculations.AddRange(waybill.Calculations);
+                return NotFound();
             }
+
+            var modelIsValid = CreationModelIsValid(waybillCreation);
+            if (!modelIsValid.Item1)
+            {
+                return Problem(modelIsValid.Item2);
+            }
+
+            if (_context.Waybills.Any(x => x.Id != existingWaybill.Id && x.Number == waybillCreation.Number && x.SalaryYear == existingWaybill.SalaryYear))
+            {
+                return Problem($"Путевой лист №{waybillCreation.Number} уже существует в {existingWaybill.SalaryYear} году.");
+            }
+
+            var waybill = new Waybill(waybillCreation, existingWaybill.SalaryYear, existingWaybill.SalaryMonth, modelIsValid.Item3);
+
+            _context.Entry(existingWaybill).CurrentValues.SetValues(waybill);
+            existingWaybill.Operations.Clear();
+            existingWaybill.Calculations.Clear();
+            existingWaybill.Operations.AddRange(waybill.Operations);
+            existingWaybill.Calculations.AddRange(waybill.Calculations);
 
             try
             {
@@ -105,39 +114,30 @@ namespace WaybillsAPI.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!WaybillExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                throw;
             }
 
-            return NoContent();
+            var editedWaybill = _mapper.Map<Waybill, WaybillDTO>(existingWaybill);
+
+            return Ok(editedWaybill);
         }
 
         [HttpPost]
         public async Task<ActionResult<WaybillDTO>> PostWaybill(WaybillCreation waybillCreation)
         {
-            if (!_context.Drivers.Any(x => x.Id == waybillCreation.DriverId))
+            var modelIsValid = CreationModelIsValid(waybillCreation);
+            if (!modelIsValid.Item1)
             {
-                return Problem("Водителя с заданным ID не существует.");
+                return Problem(modelIsValid.Item2);
             }
 
-            var transport = _context.Transport.Find(waybillCreation.TransportId);
-            if (transport is null)
+            var salaryPeriod = _dateService.GetSalaryPeriod();
+            if (_context.Waybills.Any(x => x.Number == waybillCreation.Number && x.SalaryYear == salaryPeriod.Item1))
             {
-                return Problem("Транспорта с заданным ID не существует.");
+                return Problem($"Путевой лист №{waybillCreation.Number} уже существует в {salaryPeriod.Item1} году.");
             }
 
-            var waybill = new Waybill(waybillCreation, GetCurrentDate(), transport.Coefficient);
-
-            if (_context.Waybills.Any(x => x.Number == waybill.Number && x.SalaryYear == waybill.SalaryYear))
-            {
-                return Problem($"Путевой лист №{waybillCreation.Number} уже существует в {waybill.SalaryYear} году.");
-            }
+            var waybill = new Waybill(waybillCreation, salaryPeriod.Item1, salaryPeriod.Item2, modelIsValid.Item3);
 
             _context.Waybills.Add(waybill);
             try
@@ -169,11 +169,21 @@ namespace WaybillsAPI.Controllers
             return NoContent();
         }
 
-        private bool WaybillExists(int id)
+        private (bool, string, double) CreationModelIsValid(WaybillCreation waybillCreation)
         {
-            return _context.Waybills.Any(e => e.Id == id);
-        }
+            var driver = _context.Drivers.Find(waybillCreation.DriverId);
+            if (driver is null)
+            {
+                return (false, "Водителя с заданным ID не существует.", 0d);
+            }
 
-        private static DateOnly GetCurrentDate() => DateOnly.FromDateTime(DateTime.UtcNow);
+            var transport = _context.Transport.Find(waybillCreation.TransportId);
+            if (transport is null)
+            {
+                return (false, "Транспорта с заданным ID не существует.", 0d);
+            }
+
+            return (true, "", transport.Coefficient);
+        }
     }
 }

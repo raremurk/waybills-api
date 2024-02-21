@@ -39,11 +39,12 @@ namespace WaybillsAPI.Models
         public List<Calculation> Calculations { get; private set; } = [];
 
         private Waybill() { }
-        public Waybill(WaybillCreation creationModel, DateOnly currentDate, double transportCoefficient)
+        public Waybill(WaybillCreation creationModel, int salaryYear, int salaryMonth, double transportCoefficient)
         {
             Id = creationModel.Id;
             Number = creationModel.Number;
-            SetSalaryDate(currentDate);
+            SalaryYear = salaryYear;
+            SalaryMonth = salaryMonth;
             Date = creationModel.Date;
             Days = creationModel.Days;
             Hours = creationModel.Hours;
@@ -67,16 +68,5 @@ namespace WaybillsAPI.Models
         public string FullDate => Days == 2 ? Date.ToString($"d—{Date.Day + 1} MMMM yyyy") : Date.ToString($"d MMMM yyyy");
         public string DriverShortFullName => Driver is null ? "" : Driver.ShortFullName();
         public string TransportName => Transport is null ? "" : Transport.Name;
-
-        private void SetSalaryDate(DateOnly currentDate)
-        {
-            if (currentDate.Day < 16)
-            {
-                currentDate = currentDate.AddMonths(-1);
-            }
-
-            SalaryMonth = currentDate.Month;
-            SalaryYear = currentDate.Year;
-        }
     }
 }
