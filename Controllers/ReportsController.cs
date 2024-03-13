@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using WaybillsAPI.Context;
 using WaybillsAPI.Interfaces;
+using WaybillsAPI.Models;
 using WaybillsAPI.ReportsModels;
 using WaybillsAPI.ViewModels;
 
@@ -44,8 +45,8 @@ namespace WaybillsAPI.Controllers
             return report;
         }
 
-        [HttpGet("monthTotal/{year}/{month}")]
-        public async Task<ActionResult<IEnumerable<DriverMonthTotal>>> GetMonthTotal(int year, int month)
+        [HttpGet("monthTotal/{year}/{month}/{mainEntity?}")]
+        public async Task<ActionResult<IEnumerable<DetailedEntityMonthTotal>>> GetMonthTotal(int year, int month, string mainEntity = "driver")
         {
             var waybills = await _context.Waybills
                 .Where(x => x.SalaryYear == year && x.SalaryMonth == month)
@@ -54,12 +55,24 @@ namespace WaybillsAPI.Controllers
             var drivers = await _context.Drivers.ToDictionaryAsync(x => x.Id);
             var transports = await _context.Transport.ToDictionaryAsync(x => x.Id);
 
-            var driverMonthTotals = waybills
-                .GroupBy(x => x.DriverId)
-                .Select(x => new DriverMonthTotal(drivers[x.Key], x.GroupBy(x => x.TransportId).Select(x => new TransportMonthTotal(transports[x.Key], [.. x])).ToList()))
-                .OrderBy(x => x.DriverFullName).ToList();
+            var mainGroupBy = (Waybill x) => x.DriverId;
+            var childGroupBy = (Waybill x) => x.TransportId;
+            var mainEntityName = (int id) => drivers[id].ShortFullName();
+            var childEntityName = (int id) => transports[id].Name;
+            var mainEntityCode = (int id) => drivers[id].PersonnelNumber;
+            var childEntityCode = (int id) => transports[id].Code;
+            if (string.Compare(mainEntity, "transport", StringComparison.InvariantCultureIgnoreCase) == 0)
+            {
+                (childGroupBy, mainGroupBy, childEntityName, mainEntityName, childEntityCode, mainEntityCode)
+                    = (mainGroupBy, childGroupBy, mainEntityName, childEntityName, mainEntityCode, childEntityCode);
+            }
 
-            return driverMonthTotals;
+            var detailedMonthTotals = waybills
+                .GroupBy(mainGroupBy)
+                .Select(x => new DetailedEntityMonthTotal(mainEntityName(x.Key), mainEntityCode(x.Key), x.GroupBy(childGroupBy).Select(x => new EntityMonthTotal(childEntityName(x.Key), childEntityCode(x.Key), [.. x]))))
+                .OrderBy(x => x.EntityName).ToList();
+
+            return detailedMonthTotals;
         }
     }
 }

@@ -48,7 +48,7 @@ namespace WaybillsAPI.ReportsModels
             RoundValues();
         }
 
-        public MonthTotal(List<MonthTotal> totals)
+        public MonthTotal(IEnumerable<MonthTotal> totals)
         {
             foreach (var total in totals)
             {
