@@ -241,17 +241,17 @@ namespace WaybillsAPI.Services
                     sheet.Cells[$"M{index}"].Style.Border.Right.Style = ExcelBorderStyle.Thin;
                     sheet.Cells[$"H{index}:I{index}"].Merge = true;
                     sheet.Cells[$"A{index}"].Value = operation.ProductionCostCode;
-                    sheet.Cells[$"B{index}"].Value = operation.NumberOfRuns;
-                    sheet.Cells[$"C{index}"].Value = operation.TotalMileage;
-                    sheet.Cells[$"D{index}"].Value = operation.TotalMileageWithLoad;
-                    sheet.Cells[$"E{index}"].Value = operation.TransportedLoad;
-                    sheet.Cells[$"F{index}"].Value = operation.Norm;
-                    sheet.Cells[$"G{index}"].Value = operation.Fact;
-                    sheet.Cells[$"H{index}"].Value = operation.MileageWithLoad;
-                    sheet.Cells[$"J{index}"].Value = operation.NormShift;
-                    sheet.Cells[$"K{index}"].Value = operation.ConditionalReferenceHectares;
-                    sheet.Cells[$"L{index}"].Value = operation.FuelConsumptionPerUnit;
-                    sheet.Cells[$"M{index}"].Value = operation.TotalFuelConsumption;
+                    sheet.Cells[$"B{index}"].Value = operation.NumberOfRuns == 0 ? "" : operation.NumberOfRuns;
+                    sheet.Cells[$"C{index}"].Value = operation.TotalMileage == 0d ? "" : operation.TotalMileage;
+                    sheet.Cells[$"D{index}"].Value = operation.TotalMileageWithLoad == 0d ? "" : operation.TotalMileageWithLoad;
+                    sheet.Cells[$"E{index}"].Value = operation.TransportedLoad == 0d ? "" : operation.TransportedLoad;
+                    sheet.Cells[$"F{index}"].Value = operation.Norm == 0d ? "" : operation.Norm;
+                    sheet.Cells[$"G{index}"].Value = operation.Fact == 0d ? "" : operation.Fact;
+                    sheet.Cells[$"H{index}"].Value = operation.MileageWithLoad == 0d ? "" : operation.MileageWithLoad;
+                    sheet.Cells[$"J{index}"].Value = operation.NormShift == 0d ? "" : operation.NormShift;
+                    sheet.Cells[$"K{index}"].Value = operation.ConditionalReferenceHectares == 0d ? "" : operation.ConditionalReferenceHectares;
+                    sheet.Cells[$"L{index}"].Value = operation.FuelConsumptionPerUnit == 0d ? "" : operation.FuelConsumptionPerUnit;
+                    sheet.Cells[$"M{index}"].Value = operation.TotalFuelConsumption == 0d ? "" : operation.TotalFuelConsumption;
 
                     index++;
                 }
