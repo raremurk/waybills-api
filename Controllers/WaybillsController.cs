@@ -7,6 +7,7 @@ using WaybillsAPI.Context;
 using WaybillsAPI.CreationModels;
 using WaybillsAPI.Interfaces;
 using WaybillsAPI.Models;
+using WaybillsAPI.ReportsModels.Fuel;
 using WaybillsAPI.ViewModels;
 
 namespace WaybillsAPI.Controllers
@@ -30,6 +31,24 @@ namespace WaybillsAPI.Controllers
 
             var waybillsDTO = _mapper.Map<List<Waybill>, List<ShortWaybillDTO>>(waybills);
             return waybillsDTO;
+        }
+
+        [HttpGet("fuelOnly/{year}/{month}/{driverId?}/{transportId?}")]
+        public async Task<ActionResult<IEnumerable<FuelWaybill>>> GetFuelWaybills(int year, int month, int driverId = 0, int transportId = 0)
+        {
+            if (driverId == 0 && transportId == 0)
+            {
+                return new List<FuelWaybill>();
+            }
+
+            var waybills = await _context.Waybills
+                .Where(x => x.SalaryYear == year && x.SalaryMonth == month
+                    && (x.DriverId == driverId || driverId == 0) && (x.TransportId == transportId || transportId == 0))
+                .Include(x => x.Driver)
+                .Include(x => x.Transport).ToListAsync();
+
+            var fuelWaybills = _mapper.Map<List<Waybill>, List<FuelWaybill>>(waybills).OrderBy(x => x.Date).ToList();
+            return fuelWaybills;
         }
 
         [HttpGet("excel/{year}/{month}/{driverId}")]
