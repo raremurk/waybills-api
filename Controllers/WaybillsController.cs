@@ -51,24 +51,31 @@ namespace WaybillsAPI.Controllers
             return fuelWaybills;
         }
 
-        [HttpGet("excel/{year}/{month}/{driverId}")]
-        public async Task<ActionResult> GetExcelWithWaybills(int year, int month, int driverId)
+        [HttpGet("excel/{year}/{month}/{driverId?}")]
+        public async Task<ActionResult> GetExcelWithWaybills(int year, int month, int driverId = 0)
         {
-            var driver = await _context.Drivers.FindAsync(driverId);
-            if (driver == null)
+            var driverName = "Все водители";
+            if (driverId != 0)
             {
-                return Problem("Водителя с заданным ID не существует.");
+                var driver = await _context.Drivers.FindAsync(driverId);
+                if (driver == null)
+                {
+                    return Problem("Водителя с заданным ID не существует.");
+                }
+                driverName = driver.ShortFullName();
             }
-            var fileName = $"{driver.ShortFullName()}_{CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(month)}_{year}.xlsx";
+
+            var fileName = $"{driverName}_{CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(month)}_{year}.xlsx";
             var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
             var waybills = await _context.Waybills
-                .Where(x => x.SalaryYear == year && x.SalaryMonth == month && x.DriverId == driverId)
+                .Where(x => x.SalaryYear == year && x.SalaryMonth == month && (driverId == 0 || x.DriverId == driverId))
                 .Include(x => x.Driver)
                 .Include(x => x.Transport)
                 .Include(x => x.Operations)
                 .Include(x => x.Calculations)
-                .OrderBy(x => x.Date).ToListAsync();
+                .OrderBy(x => x.Date)
+                .ToListAsync();
             return File(_writer.Generate(waybills), contentType, fileName);
         }
 

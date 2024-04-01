@@ -22,7 +22,7 @@ namespace WaybillsAPI.ReportsModels
         public double NormShift { get; private set; }
         public double ConditionalReferenceHectares { get; private set; }
 
-        public MonthTotal(List<Waybill> waybills)
+        public MonthTotal(IEnumerable<Waybill> waybills)
         {
             foreach (var waybill in waybills)
             {
