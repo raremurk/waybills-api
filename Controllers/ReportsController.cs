@@ -13,11 +13,40 @@ namespace WaybillsAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class ReportsController(WaybillsContext context, IExcelWriter writer, IMapper mapper) : ControllerBase
+    public class ReportsController(WaybillsContext context, IExcelWriter writer, IMapper mapper, IOmnicommFuelService omnicommFuelService) : ControllerBase
     {
         private readonly WaybillsContext _context = context;
         private readonly IExcelWriter _writer = writer;
         private readonly IMapper _mapper = mapper;
+        private readonly IOmnicommFuelService _omnicommFuelService = omnicommFuelService;
+
+        [HttpGet("omnicommFuel/{data}/{omnicommId}")]
+        public async Task<ActionResult<FuelFromOmnicomm>> GetOmnicommFuel(DateOnly data, int omnicommId)
+        {
+            if (omnicommId == 0)
+            {
+                return Problem("Машина не подключена к Omnicomm");
+            }
+
+            var omnicommFuelReport = await _omnicommFuelService.GetOmnicommFuelReport(data, omnicommId);
+            if (omnicommFuelReport.Code == 0)
+            {
+                var fuelData = omnicommFuelReport.Data.VehicleDataList.First();
+                return new FuelFromOmnicomm()
+                {
+                    TransportName = fuelData.Name,
+                    StartFuel = fuelData.Fuel.StartVolume / 10 ?? 0d,
+                    FuelTopUp = fuelData.Fuel.Refuelling / 10 ?? 0d,
+                    EndFuel = fuelData.Fuel.EndVolume / 10 ?? 0d,
+                    FuelConsumption = fuelData.Fuel.FuelConsumption / 10 ?? 0d,
+                    Draining = fuelData.Fuel.Draining / 10 ?? 0d
+                };
+            }
+            else
+            {
+                return Problem(omnicommFuelReport.Message);
+            }
+        }
 
         [HttpGet("costCode/{year}/{month}/{price}")]
         public async Task<ActionResult<IEnumerable<CostCodeInfo>>> GetReport(int year, int month, double price)
