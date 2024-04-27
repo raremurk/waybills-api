@@ -1,23 +1,369 @@
 ﻿using OfficeOpenXml;
 using OfficeOpenXml.Style;
+using System.Globalization;
 using WaybillsAPI.Interfaces;
 using WaybillsAPI.Models;
-using WaybillsAPI.ReportsModels;
+using WaybillsAPI.ReportsModels.CostPrice;
+using WaybillsAPI.ReportsModels.MonthTotal;
 
 namespace WaybillsAPI.Services
 {
     public class ExcelWriter : IExcelWriter
     {
-        public byte[] Generate(List<Waybill> waybills)
+        public byte[] GenerateCostPriceReport(CostPriceReport report, int year, int month)
+        {
+            var package = new ExcelPackage();
+            var sheet = package.Workbook.Worksheets.Add("Себестоимость");
+            SetPrinterMargins(sheet);
+            sheet.Cells.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+            sheet.Cells.Style.Font.Size = 14;
+            sheet.Row(1).Height = 54;
+            sheet.Row(2).Height = 21;
+            sheet.Column(1).Width = GetTrueColumnWidth(15);
+            sheet.Column(2).Width = GetTrueColumnWidth(35);
+            sheet.Column(3).Width = GetTrueColumnWidth(35);
+            sheet.Column(2).Style.Numberformat.Format = "0.00";
+            sheet.Column(3).Style.Numberformat.Format = "0.00";
+
+            sheet.Cells["A1:C1"].Merge = true;
+            sheet.Cells["A1"].Style.Font.Size = 18;
+            sheet.Cells["A1:C2"].Style.Font.Bold = true;
+            sheet.Cells["A1"].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            sheet.Cells["B2:C2"].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+            sheet.Cells["A2:C2"].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+
+            sheet.Cells["A1"].Value = $"{CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(month)} {year} по путевым листам трактористов";
+            sheet.Cells["A2"].Value = "ШПЗ";
+            sheet.Cells["B2"].Value = "Условный эталонный гектар";
+            sheet.Cells["C2"].Value = "Себестоимость";
+
+            var index = 3;
+            foreach (var costCode in report.CostCodes)
+            {
+                sheet.Row(index).Height = 21;
+                sheet.Cells[$"A{index}"].Value = costCode.ProductionCostCode;
+                sheet.Cells[$"B{index}"].Value = costCode.ConditionalReferenceHectares;
+                sheet.Cells[$"C{index}"].Value = costCode.CostPrice;
+                index++;
+            }
+            sheet.Row(index).Height = 21;
+            sheet.Cells[$"A{index}"].Value = "Итого";
+            sheet.Cells[$"B{index}"].Value = report.ConditionalReferenceHectares;
+            sheet.Cells[$"C{index}"].Value = report.CostPrice;
+            sheet.Cells[$"A{index}:C{index}"].Style.Border.Top.Style = ExcelBorderStyle.Thin;
+            sheet.Cells[$"A{index}:C{index}"].Style.Font.Bold = true;
+
+            return package.GetAsByteArray();
+        }
+
+        public byte[] GenerateMonthTotal(List<Waybill> waybills)
+        {
+
+            var monthTotalReportByDrivers = new MonthTotalReport(waybills);
+            var monthTotalReportByTransports = new MonthTotalReport(waybills, false);
+
+            var package = new ExcelPackage();
+            AddMonthTotalReportSheet(monthTotalReportByDrivers, true);
+            AddMonthTotalReportSheet(monthTotalReportByTransports, false);
+
+            void AddMonthTotalReportSheet(MonthTotalReport monthTotalReport, bool byDrivers)
+            {
+                var headers = byDrivers ? ("По водителям", "Таб.", "Водитель", "Гар.", "Транспорт") : ("По транспорту", "Гар.", "Транспорт", "Таб.", "Водитель");
+                var sheet = package.Workbook.Worksheets.Add(headers.Item1);
+                SetPrinterMargins(sheet);
+                sheet.PrinterSettings.Orientation = eOrientation.Landscape;
+                sheet.PrinterSettings.PaperSize = ePaperSize.A4;
+                sheet.Cells.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+                sheet.Cells.Style.Font.Size = 8;
+                sheet.Row(1).Height = 9;
+                sheet.Row(2).Height = 9;
+                sheet.Column(1).Width = GetTrueColumnWidth(4);
+                sheet.Column(2).Width = GetTrueColumnWidth(15);
+                sheet.Column(3).Width = GetTrueColumnWidth(4);
+                sheet.Column(4).Width = GetTrueColumnWidth(15);
+                sheet.Column(5).Width = GetTrueColumnWidth(3);
+                sheet.Column(6).Width = GetTrueColumnWidth(3);
+                sheet.Column(7).Width = GetTrueColumnWidth(5);
+                sheet.Column(8).Width = GetTrueColumnWidth(7);
+                sheet.Column(9).Width = GetTrueColumnWidth(7);
+                sheet.Column(10).Width = GetTrueColumnWidth(7);
+                sheet.Column(11).Width = GetTrueColumnWidth(5);
+                sheet.Column(12).Width = GetTrueColumnWidth(6);
+                sheet.Column(13).Width = GetTrueColumnWidth(6);
+                sheet.Column(14).Width = GetTrueColumnWidth(9);
+                sheet.Column(15).Width = GetTrueColumnWidth(6);
+                sheet.Column(16).Width = GetTrueColumnWidth(7);
+                sheet.Column(17).Width = GetTrueColumnWidth(5);
+                sheet.Column(18).Width = GetTrueColumnWidth(5);
+
+                sheet.Column(1).Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                sheet.Column(3).Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                sheet.Column(7).Style.Numberformat.Format = "0.0";
+                sheet.Column(8).Style.Numberformat.Format = "0.00";
+                sheet.Column(9).Style.Numberformat.Format = "0.00";
+                sheet.Column(10).Style.Numberformat.Format = "0.00";
+                sheet.Column(12).Style.Numberformat.Format = "0.0";
+                sheet.Column(13).Style.Numberformat.Format = "0.0";
+                sheet.Column(14).Style.Numberformat.Format = "0.000";
+                sheet.Column(15).Style.Numberformat.Format = "0.00";
+                sheet.Column(16).Style.Numberformat.Format = "0.00";
+
+                var index = 1;
+                sheet.Cells[$"A{index}:R{index + 1}"].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+
+                sheet.Cells[$"A{index}:R{index + 1}"].Style.Border.Left.Style = ExcelBorderStyle.Thin;
+                sheet.Cells[$"A{index}:R{index}"].Style.Border.Top.Style = ExcelBorderStyle.Thin;
+                sheet.Cells[$"Q{index}:R{index + 1}"].Style.Border.Right.Style = ExcelBorderStyle.Thin;
+                sheet.Cells[$"A{index + 1}:R{index + 1}, L{index}:M{index}, Q{index}:R{index}"].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+
+                sheet.Cells[$"B{index}:B{index + 1}"].Merge = true;
+                sheet.Cells[$"D{index}:D{index + 1}"].Merge = true;
+                sheet.Cells[$"F{index}:F{index + 1}"].Merge = true;
+                sheet.Cells[$"G{index}:G{index + 1}"].Merge = true;
+                sheet.Cells[$"H{index}:H{index + 1}"].Merge = true;
+                sheet.Cells[$"I{index}:I{index + 1}"].Merge = true;
+                sheet.Cells[$"J{index}:J{index + 1}"].Merge = true;
+                sheet.Cells[$"L{index}:M{index}, Q{index}:R{index}"].Merge = true;
+
+                sheet.Cells[$"A{index}"].Value = headers.Item2;
+                sheet.Cells[$"B{index}"].Value = headers.Item3;
+                sheet.Cells[$"C{index}"].Value = headers.Item4;
+                sheet.Cells[$"D{index}"].Value = headers.Item5;
+                sheet.Cells[$"A{index + 1}, C{index + 1}"].Value = "№";
+                sheet.Cells[$"E{index}"].Value = "Пут.";
+                sheet.Cells[$"E{index + 1}"].Value = "лист";
+                sheet.Cells[$"F{index}"].Value = "Дни";
+                sheet.Cells[$"G{index}"].Value = "Часы";
+                sheet.Cells[$"H{index}"].Value = "Сумма";
+                sheet.Cells[$"I{index}"].Value = "Выходные";
+                sheet.Cells[$"J{index}"].Value = "Премия";
+                sheet.Cells[$"K{index}"].Value = "Число";
+                sheet.Cells[$"K{index + 1}"].Value = "ездок";
+                sheet.Cells[$"L{index}"].Value = "Пробег";
+                sheet.Cells[$"L{index + 1}"].Value = "Всего";
+                sheet.Cells[$"M{index + 1}"].Value = "С грузом";
+                sheet.Cells[$"N{index}"].Value = "Перевезено";
+                sheet.Cells[$"N{index + 1}"].Value = "груза, тонн";
+                sheet.Cells[$"O{index}"].Value = "Нормо-";
+                sheet.Cells[$"O{index + 1}"].Value = "смена";
+                sheet.Cells[$"P{index}"].Value = "Условный";
+                sheet.Cells[$"P{index + 1}"].Value = "гектар";
+                sheet.Cells[$"Q{index}"].Value = "Расход ГСМ";
+                sheet.Cells[$"Q{index + 1}"].Value = "Факт";
+                sheet.Cells[$"R{index + 1}"].Value = "Норма";
+
+                index++;
+                foreach (var monthTotal in monthTotalReport.DetailedEntityMonthTotals)
+                {
+                    index++;
+
+                    sheet.Cells[$"A{index}"].Value = monthTotal.EntityCode;
+                    sheet.Cells[$"B{index}"].Value = monthTotal.EntityName;
+                    foreach (var subTotal in monthTotal.SubTotals)
+                    {
+                        sheet.Cells[$"C{index}"].Value = subTotal.EntityCode;
+                        sheet.Cells[$"D{index}"].Value = subTotal.EntityName;
+                        sheet.Row(index).Height = 9;
+                        PrintMonthTotalValues(subTotal);
+                        index++;
+                    }
+
+                    if (monthTotal.SubTotals.Count > 1)
+                    {
+                        sheet.Cells[$"C{index}:D{index}"].Merge = true;
+                        sheet.Cells[$"C{index}"].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                        sheet.Cells[$"C{index}:R{index}"].Style.Font.Bold = true;
+                        sheet.Cells[$"C{index}:R{index}"].Style.Border.Top.Style = ExcelBorderStyle.Thin;
+                        sheet.Cells[$"C{index}"].Value = "Итого";
+                        sheet.Row(index).Height = 9;
+                        PrintMonthTotalValues(monthTotal);
+                        index++;
+                    }
+                    sheet.Row(index).Height = 4.5;
+                }
+                index++;
+                sheet.Row(index).Height = 9;
+                sheet.Cells[$"A{index}:R{index}"].Style.Font.Bold = true;
+                sheet.Cells[$"A{index}:R{index}"].Style.Border.Top.Style = ExcelBorderStyle.Thin;
+                sheet.Cells[$"A{index}"].Value = "Всего";
+                PrintMonthTotalValues(monthTotalReport);
+
+                void PrintMonthTotalValues(MonthTotal total)
+                {
+                    sheet.Cells[$"E{index}"].Value = total.WaybillsCount;
+                    sheet.Cells[$"F{index}"].Value = total.Days;
+                    sheet.Cells[$"G{index}"].Value = total.Hours;
+                    sheet.Cells[$"H{index}"].Value = total.Earnings;
+                    sheet.Cells[$"I{index}"].Value = total.Weekend;
+                    sheet.Cells[$"J{index}"].Value = total.Bonus;
+                    sheet.Cells[$"K{index}"].Value = total.NumberOfRuns;
+                    sheet.Cells[$"L{index}"].Value = total.TotalMileage;
+                    sheet.Cells[$"M{index}"].Value = total.TotalMileageWithLoad;
+                    sheet.Cells[$"N{index}"].Value = total.TransportedLoad;
+                    sheet.Cells[$"O{index}"].Value = total.NormShift;
+                    sheet.Cells[$"P{index}"].Value = total.ConditionalReferenceHectares;
+                    sheet.Cells[$"Q{index}"].Value = total.FactFuelConsumption;
+                    sheet.Cells[$"R{index}"].Value = total.NormalFuelConsumption;
+                }
+            }
+            return package.GetAsByteArray();
+        }
+
+        public byte[] GenerateShortWaybills(List<Waybill> waybills)
         {
             var groupedWaybills = waybills.GroupBy(x => x.DriverId).OrderBy(x => x.First().Driver.LastName);
 
             var package = new ExcelPackage();
-            var sheet = package.Workbook.Worksheets.Add("Путевые листы");
-            sheet.PrinterSettings.HeaderMargin = sheet.PrinterSettings.FooterMargin = 0M;
-            sheet.PrinterSettings.LeftMargin = 0.7M;
-            sheet.PrinterSettings.RightMargin = 0.5M;
-            sheet.PrinterSettings.TopMargin = sheet.PrinterSettings.BottomMargin = 0.2M;
+            var sheet = package.Workbook.Worksheets.Add("Путевые листы кратко");
+            SetPrinterMargins(sheet);
+            sheet.Cells.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+            sheet.Cells.Style.Font.Name = "Times New Roman";
+            sheet.Cells.Style.Font.Size = 7;
+            sheet.Column(1).Width = GetTrueColumnWidth(2.86);
+            sheet.Column(2).Width = GetTrueColumnWidth(11.57);
+            sheet.Column(3).Width = GetTrueColumnWidth(3);
+            sheet.Column(4).Width = GetTrueColumnWidth(2.71);
+            sheet.Column(5).Width = GetTrueColumnWidth(4.29);
+            sheet.Column(6).Width = GetTrueColumnWidth(2);
+            sheet.Column(7).Width = GetTrueColumnWidth(3.29);
+            sheet.Column(8).Width = GetTrueColumnWidth(5);
+            sheet.Column(9).Width = GetTrueColumnWidth(3.29);
+            sheet.Column(10).Width = GetTrueColumnWidth(4.86);
+            sheet.Column(11).Width = GetTrueColumnWidth(4.86);
+            sheet.Column(12).Width = GetTrueColumnWidth(7.86);
+            sheet.Column(13).Width = GetTrueColumnWidth(5);
+            sheet.Column(14).Width = GetTrueColumnWidth(6);
+            sheet.Column(15).Width = GetTrueColumnWidth(3.57);
+            sheet.Column(16).Width = GetTrueColumnWidth(3.57);
+            sheet.Column(17).Width = GetTrueColumnWidth(3.57);
+
+            sheet.Column(7).Style.Numberformat.Format = "0.0";
+            sheet.Column(8).Style.Numberformat.Format = "0.00";
+            sheet.Column(10).Style.Numberformat.Format = "0.0";
+            sheet.Column(11).Style.Numberformat.Format = "0.0";
+            sheet.Column(12).Style.Numberformat.Format = "0.000";
+            sheet.Column(13).Style.Numberformat.Format = "0.00";
+            sheet.Column(14).Style.Numberformat.Format = "0.00";
+
+            sheet.Column(4).Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+
+            sheet.DefaultRowHeight = 9;
+
+            var index = 1;
+            PrintHeader();
+            var pageHeight = 18;
+            var maxPageHeight = 838;
+
+            foreach (var driverWaybills in groupedWaybills)
+            {
+                var driverWaybillsHeight = driverWaybills.Count() * 9;
+                if (pageHeight + driverWaybillsHeight > maxPageHeight)
+                {
+                    sheet.Row(index).PageBreak = true;
+                    pageHeight = 18 + driverWaybillsHeight;
+                    index++;
+                    PrintHeader();
+                }
+                else
+                {
+                    pageHeight += driverWaybillsHeight + 9;
+                }
+                index += 2;
+
+                foreach (var waybill in driverWaybills)
+                {
+                    sheet.Cells[$"A{index}"].Value = waybill.Driver.PersonnelNumber;
+                    sheet.Cells[$"B{index}"].Value = waybill.Driver.ShortFullName();
+                    sheet.Cells[$"C{index}"].Value = waybill.Transport.Code;
+                    sheet.Cells[$"D{index}"].Value = waybill.Date.ToString("dd.MM");
+                    sheet.Cells[$"E{index}"].Value = waybill.Number;
+                    sheet.Cells[$"F{index}"].Value = waybill.Days;
+                    sheet.Cells[$"G{index}"].Value = waybill.Hours;
+                    sheet.Cells[$"H{index}"].Value = waybill.Earnings + waybill.Weekend + waybill.Bonus;
+                    sheet.Cells[$"I{index}"].Value = waybill.Operations.Sum(x => x.NumberOfRuns);
+                    sheet.Cells[$"J{index}"].Value = waybill.Operations.Sum(x => x.TotalMileage);
+                    sheet.Cells[$"K{index}"].Value = waybill.Operations.Sum(x => x.TotalMileageWithLoad);
+                    sheet.Cells[$"L{index}"].Value = waybill.Operations.Sum(x => x.TransportedLoad);
+                    sheet.Cells[$"M{index}"].Value = waybill.Operations.Sum(x => x.NormShift);
+                    sheet.Cells[$"N{index}"].Value = waybill.Operations.Sum(x => x.ConditionalReferenceHectares);
+                    sheet.Cells[$"O{index}"].Value = waybill.FactFuelConsumption;
+                    sheet.Cells[$"P{index}"].Value = waybill.NormalFuelConsumption;
+                    sheet.Cells[$"Q{index}"].Value = waybill.NormalFuelConsumption - waybill.FactFuelConsumption;
+                    index++;
+                }
+
+                var total = new MonthTotal(driverWaybills);
+                sheet.Cells[$"A{index}"].Value = "Итого";
+                sheet.Cells[$"E{index}"].Value = total.WaybillsCount;
+                sheet.Cells[$"F{index}"].Value = total.Days;
+                sheet.Cells[$"G{index}"].Value = total.Hours;
+                sheet.Cells[$"H{index}"].Value = total.Earnings + total.Weekend + total.Bonus;
+                sheet.Cells[$"I{index}"].Value = total.NumberOfRuns;
+                sheet.Cells[$"J{index}"].Value = total.TotalMileage;
+                sheet.Cells[$"K{index}"].Value = total.TotalMileageWithLoad;
+                sheet.Cells[$"L{index}"].Value = total.TransportedLoad;
+                sheet.Cells[$"M{index}"].Value = total.NormShift;
+                sheet.Cells[$"N{index}"].Value = total.ConditionalReferenceHectares;
+                sheet.Cells[$"O{index}"].Value = total.FactFuelConsumption;
+                sheet.Cells[$"P{index}"].Value = total.NormalFuelConsumption;
+                sheet.Cells[$"Q{index}"].Value = total.NormalFuelConsumption - total.FactFuelConsumption;
+
+                sheet.Cells[$"A{index}:Q{index}"].Style.Border.Top.Style = ExcelBorderStyle.Thin;
+                sheet.Cells[$"A{index}:Q{index}"].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+            }
+            return package.GetAsByteArray();
+
+            void PrintHeader()
+            {
+                sheet.Cells[$"A{index}:Q{index + 1}"].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+
+                sheet.Cells[$"A{index}:Q{index + 1}"].Style.Border.Left.Style = ExcelBorderStyle.Thin;
+                sheet.Cells[$"A{index}:Q{index}"].Style.Border.Top.Style = ExcelBorderStyle.Thin;
+                sheet.Cells[$"Q{index}:Q{index + 1}"].Style.Border.Right.Style = ExcelBorderStyle.Thin;
+                sheet.Cells[$"A{index + 1}:Q{index + 1}, J{index}:K{index}, O{index}:Q{index}"].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+
+                sheet.Cells[$"J{index}:K{index}, O{index}:Q{index}"].Merge = true;
+                sheet.Cells[$"B{index}:B{index + 1}"].Merge = true;
+                sheet.Cells[$"C{index}:C{index + 1}"].Merge = true;
+                sheet.Cells[$"D{index}:D{index + 1}"].Merge = true;
+                sheet.Cells[$"F{index}:F{index + 1}"].Merge = true;
+                sheet.Cells[$"G{index}:G{index + 1}"].Merge = true;
+                sheet.Cells[$"H{index}:H{index + 1}"].Merge = true;
+                sheet.Cells[$"A{index}"].Value = "Таб.";
+                sheet.Cells[$"A{index + 1}"].Value = "№";
+                sheet.Cells[$"B{index}"].Value = "ФИО";
+                sheet.Cells[$"C{index}"].Value = "Шифр";
+                sheet.Cells[$"D{index}"].Value = "Дата";
+                sheet.Cells[$"E{index}"].Value = "Номер";
+                sheet.Cells[$"E{index + 1}"].Value = "листа";
+                sheet.Cells[$"F{index}"].Value = "Дни";
+                sheet.Cells[$"G{index}"].Value = "Часы";
+                sheet.Cells[$"H{index}"].Value = "Зарплата";
+                sheet.Cells[$"I{index}"].Value = "Число";
+                sheet.Cells[$"I{index + 1}"].Value = "ездок";
+                sheet.Cells[$"J{index}"].Value = "Пробег";
+                sheet.Cells[$"J{index + 1}"].Value = "Всего";
+                sheet.Cells[$"K{index + 1}"].Value = "С грузом";
+                sheet.Cells[$"L{index}"].Value = "Перевезено";
+                sheet.Cells[$"L{index + 1}"].Value = "груза, тонн";
+                sheet.Cells[$"M{index}"].Value = "Нормо-";
+                sheet.Cells[$"M{index + 1}"].Value = "смена";
+                sheet.Cells[$"N{index}"].Value = "Условный";
+                sheet.Cells[$"N{index + 1}"].Value = "гектар";
+                sheet.Cells[$"O{index}"].Value = "Расход ГСМ";
+                sheet.Cells[$"O{index + 1}"].Value = "Факт";
+                sheet.Cells[$"P{index + 1}"].Value = "Норма";
+                sheet.Cells[$"Q{index + 1}"].Value = "Экон";
+            }
+        }
+
+        public byte[] GenerateDetailedWaybills(List<Waybill> waybills)
+        {
+            var groupedWaybills = waybills.GroupBy(x => new { x.DriverId, x.TransportId }).OrderBy(x => x.First().Driver.LastName);
+
+            var package = new ExcelPackage();
+            var sheet = package.Workbook.Worksheets.Add("Путевые листы детально");
+            SetPrinterMargins(sheet);
             sheet.Cells.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
             sheet.Cells.Style.Font.Name = "Times New Roman";
             sheet.Cells.Style.Font.Size = 8;
@@ -350,9 +696,20 @@ namespace WaybillsAPI.Services
                 {
                     index++;
                     sheet.Row(index).PageBreak = true;
+                    sheet.Cells[$"A{index}"].Value = "";
                 }
             }
             return package.GetAsByteArray();
+        }
+
+        private static void SetPrinterMargins(ExcelWorksheet sheet)
+        {
+            sheet.PrinterSettings.LeftMargin = 0.7M;
+            sheet.PrinterSettings.RightMargin = 0.5M;
+            sheet.PrinterSettings.TopMargin = 0.2M;
+            sheet.PrinterSettings.BottomMargin = 0.2M;
+            sheet.PrinterSettings.HeaderMargin = 0M;
+            sheet.PrinterSettings.FooterMargin = 0M;
         }
 
         private static double GetTrueColumnWidth(double width)

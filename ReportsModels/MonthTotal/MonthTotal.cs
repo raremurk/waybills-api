@@ -1,6 +1,6 @@
 ﻿using WaybillsAPI.Models;
 
-namespace WaybillsAPI.ReportsModels
+namespace WaybillsAPI.ReportsModels.MonthTotal
 {
     public class MonthTotal
     {
@@ -48,7 +48,8 @@ namespace WaybillsAPI.ReportsModels
             RoundValues();
         }
 
-        public MonthTotal(IEnumerable<MonthTotal> totals)
+        protected MonthTotal() { }
+        protected void Initialize(IEnumerable<MonthTotal> totals)
         {
             foreach (var total in totals)
             {
