@@ -18,7 +18,7 @@
         public string TransportName { get; set; }
 
         public double Earnings { get; set; }
-        public double Weekend { get; set; }
         public double Bonus { get; set; }
+        public double Weekend { get; set; }
     }
 }

@@ -32,8 +32,8 @@ namespace WaybillsAPI.Models
         public Transport? Transport { get; private set; }
 
         public double Earnings { get; private set; }
-        public double Weekend { get; private set; }
         public double Bonus { get; private set; }
+        public double Weekend { get; private set; }
 
         public List<Operation> Operations { get; private set; } = [];
         public List<Calculation> Calculations { get; private set; } = [];
@@ -53,8 +53,6 @@ namespace WaybillsAPI.Models
             EndFuel = creationModel.EndFuel;
             DriverId = creationModel.DriverId;
             TransportId = creationModel.TransportId;
-            Weekend = creationModel.Weekend;
-            Bonus = creationModel.Bonus;
 
             Operations = creationModel.Operations.Select(x => new Operation(x, transportCoefficient)).ToList();
             Calculations = creationModel.Calculations.Select(x => new Calculation(x)).ToList();
@@ -63,6 +61,8 @@ namespace WaybillsAPI.Models
             NormalFuelConsumption = (int)Math.Round(Operations.Sum(x => x.TotalFuelConsumption));
             ConditionalReferenceHectares = Math.Round(Operations.Sum(x => x.ConditionalReferenceHectares), 2);
             Earnings = Math.Round(Calculations.Sum(x => x.Sum), 2);
+            Bonus = creationModel.BonusSizeInPercentages > 0 ? Math.Round(Earnings * creationModel.BonusSizeInPercentages / 100, 2) : creationModel.Bonus;
+            Weekend = creationModel.WeekendEqualsEarnings ? Earnings : creationModel.Weekend;
         }
 
         public string FullDate => Days == 2 ? Date.ToString($"d—{Date.Day + 1} MMMM yyyy") : Date.ToString($"d MMMM yyyy");

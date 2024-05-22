@@ -135,8 +135,8 @@ namespace WaybillsAPI.Services
                 sheet.Cells[$"F{index}"].Value = "Дни";
                 sheet.Cells[$"G{index}"].Value = "Часы";
                 sheet.Cells[$"H{index}"].Value = "Сумма";
-                sheet.Cells[$"I{index}"].Value = "Выходные";
-                sheet.Cells[$"J{index}"].Value = "Премия";
+                sheet.Cells[$"I{index}"].Value = "Премия";
+                sheet.Cells[$"J{index}"].Value = "Выходные";
                 sheet.Cells[$"K{index}"].Value = "Число";
                 sheet.Cells[$"K{index + 1}"].Value = "ездок";
                 sheet.Cells[$"L{index}"].Value = "Пробег";
@@ -194,8 +194,8 @@ namespace WaybillsAPI.Services
                     sheet.Cells[$"F{index}"].Value = total.Days;
                     sheet.Cells[$"G{index}"].Value = total.Hours;
                     sheet.Cells[$"H{index}"].Value = total.Earnings;
-                    sheet.Cells[$"I{index}"].Value = total.Weekend;
-                    sheet.Cells[$"J{index}"].Value = total.Bonus;
+                    sheet.Cells[$"I{index}"].Value = total.Bonus;
+                    sheet.Cells[$"J{index}"].Value = total.Weekend;
                     sheet.Cells[$"K{index}"].Value = total.NumberOfRuns;
                     sheet.Cells[$"L{index}"].Value = total.TotalMileage;
                     sheet.Cells[$"M{index}"].Value = total.TotalMileageWithLoad;
@@ -279,7 +279,7 @@ namespace WaybillsAPI.Services
                     sheet.Cells[$"E{index}"].Value = waybill.Number;
                     sheet.Cells[$"F{index}"].Value = waybill.Days;
                     sheet.Cells[$"G{index}"].Value = waybill.Hours;
-                    sheet.Cells[$"H{index}"].Value = waybill.Earnings + waybill.Weekend + waybill.Bonus;
+                    sheet.Cells[$"H{index}"].Value = waybill.Earnings + waybill.Bonus + waybill.Weekend;
                     sheet.Cells[$"I{index}"].Value = waybill.Operations.Sum(x => x.NumberOfRuns);
                     sheet.Cells[$"J{index}"].Value = waybill.Operations.Sum(x => x.TotalMileage);
                     sheet.Cells[$"K{index}"].Value = waybill.Operations.Sum(x => x.TotalMileageWithLoad);
@@ -297,7 +297,7 @@ namespace WaybillsAPI.Services
                 sheet.Cells[$"E{index}"].Value = total.WaybillsCount;
                 sheet.Cells[$"F{index}"].Value = total.Days;
                 sheet.Cells[$"G{index}"].Value = total.Hours;
-                sheet.Cells[$"H{index}"].Value = total.Earnings + total.Weekend + total.Bonus;
+                sheet.Cells[$"H{index}"].Value = total.Earnings + total.Bonus + total.Weekend;
                 sheet.Cells[$"I{index}"].Value = total.NumberOfRuns;
                 sheet.Cells[$"J{index}"].Value = total.TotalMileage;
                 sheet.Cells[$"K{index}"].Value = total.TotalMileageWithLoad;
@@ -424,13 +424,13 @@ namespace WaybillsAPI.Services
                 sheet.Cells[$"H{index}"].Style.Font.Size = 12;
                 sheet.Cells[$"H{index}"].Style.Font.Bold = true;
 
-                sheet.Cells[$"J{index}"].Value = "Выходные";
-                sheet.Cells[$"L{index}"].Value = total.Weekend;
+                sheet.Cells[$"J{index}"].Value = "Премия";
+                sheet.Cells[$"L{index}"].Value = total.Bonus;
                 sheet.Cells[$"L{index}"].Style.Font.Size = 10;
                 sheet.Cells[$"L{index}"].Style.Font.Bold = true;
 
-                sheet.Cells[$"J{index + 1}"].Value = "Премия";
-                sheet.Cells[$"L{index + 1}"].Value = total.Bonus;
+                sheet.Cells[$"J{index + 1}"].Value = "Выходные";
+                sheet.Cells[$"L{index + 1}"].Value = total.Weekend;
                 sheet.Cells[$"L{index + 1}"].Style.Font.Size = 10;
                 sheet.Cells[$"L{index + 1}"].Style.Font.Bold = true;
 
@@ -652,8 +652,8 @@ namespace WaybillsAPI.Services
                     sheet.Cells[$"K{index}"].Value = "Сумма";
                     sheet.Cells[$"K{index + 1}"].Value = "заработка";
                     sheet.Cells[$"L{index}"].Value = "Дополнительно";
-                    sheet.Cells[$"L{index + 1}"].Value = "Выходные";
-                    sheet.Cells[$"M{index + 1}"].Value = "Премия";
+                    sheet.Cells[$"L{index + 1}"].Value = "Премия";
+                    sheet.Cells[$"M{index + 1}"].Value = "Выходные";
 
                     sheet.Cells[$"A{index}:H{index}, I{index}:M{index + 2}"].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
 
@@ -685,8 +685,8 @@ namespace WaybillsAPI.Services
                     sheet.Cells[$"I{index}"].Value = waybill.Days;
                     sheet.Cells[$"J{index}"].Value = waybill.Hours;
                     sheet.Cells[$"K{index}"].Value = waybill.Earnings;
-                    sheet.Cells[$"L{index}"].Value = waybill.Weekend;
-                    sheet.Cells[$"M{index}"].Value = waybill.Bonus;
+                    sheet.Cells[$"L{index}"].Value = waybill.Bonus;
+                    sheet.Cells[$"M{index}"].Value = waybill.Weekend;
 
                     index++;
                 }

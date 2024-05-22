@@ -21,8 +21,8 @@
         public TransportDTO? Transport { get; set; }
 
         public double Earnings { get; set; }
-        public double Weekend { get; set; }
         public double Bonus { get; set; }
+        public double Weekend { get; set; }
 
         public List<OperationDTO> Operations { get; set; }
         public List<CalculationDTO> Calculations { get; set; }

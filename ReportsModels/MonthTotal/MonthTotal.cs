@@ -9,8 +9,8 @@ namespace WaybillsAPI.ReportsModels.MonthTotal
         public double Hours { get; private set; }
 
         public double Earnings { get; private set; }
-        public double Weekend { get; private set; }
         public double Bonus { get; private set; }
+        public double Weekend { get; private set; }
 
         public int FactFuelConsumption { get; private set; }
         public int NormalFuelConsumption { get; private set; }
@@ -30,8 +30,8 @@ namespace WaybillsAPI.ReportsModels.MonthTotal
                 Days += waybill.Days;
                 Hours += waybill.Hours;
                 Earnings += waybill.Earnings;
-                Weekend += waybill.Weekend;
                 Bonus += waybill.Bonus;
+                Weekend += waybill.Weekend;
                 FactFuelConsumption += waybill.FactFuelConsumption;
                 NormalFuelConsumption += waybill.NormalFuelConsumption;
 
@@ -57,8 +57,8 @@ namespace WaybillsAPI.ReportsModels.MonthTotal
                 Days += total.Days;
                 Hours += total.Hours;
                 Earnings += total.Earnings;
-                Weekend += total.Weekend;
                 Bonus += total.Bonus;
+                Weekend += total.Weekend;
                 FactFuelConsumption += total.FactFuelConsumption;
                 NormalFuelConsumption += total.NormalFuelConsumption;
                 NumberOfRuns += total.NumberOfRuns;
@@ -75,8 +75,8 @@ namespace WaybillsAPI.ReportsModels.MonthTotal
         {
             Hours = Math.Round(Hours, 1);
             Earnings = Math.Round(Earnings, 2);
-            Weekend = Math.Round(Weekend, 2);
             Bonus = Math.Round(Bonus, 2);
+            Weekend = Math.Round(Weekend, 2);
             TotalMileage = Math.Round(TotalMileage, 1);
             TotalMileageWithLoad = Math.Round(TotalMileageWithLoad, 1);
             TransportedLoad = Math.Round(TransportedLoad, 3);

@@ -16,8 +16,11 @@
         public int DriverId { get; set; }
         public int TransportId { get; set; }
 
-        public double Weekend { get; set; }
         public double Bonus { get; set; }
+        public double Weekend { get; set; }
+
+        public double BonusSizeInPercentages { get; set; }
+        public bool WeekendEqualsEarnings { get; set; }
 
         public List<OperationCreation> Operations { get; set; } = [];
         public List<CalculationCreation> Calculations { get; set; } = [];
