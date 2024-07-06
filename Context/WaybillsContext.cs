@@ -10,6 +10,7 @@ namespace WaybillsAPI.Context
         public DbSet<Waybill> Waybills { get; set; } = null!;
         public DbSet<Operation> Operations { get; set; } = null!;
         public DbSet<Calculation> Calculations { get; set; } = null!;
+        public DbSet<Rate> Rates { get; set; } = null!;
 
         public WaybillsContext(DbContextOptions<WaybillsContext> options) : base(options)
         {
@@ -23,9 +24,6 @@ namespace WaybillsAPI.Context
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<Transport>().HasData(Data.Transports());
-            modelBuilder.Entity<Driver>().HasData(Data.Drivers());
-
             modelBuilder.Entity<Waybill>()
                 .HasMany(j => j.Operations)
                 .WithOne(j => j.Waybill)
