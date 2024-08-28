@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WaybillsAPI.Context;
+using WaybillsAPI.Helpers;
 using WaybillsAPI.Interfaces;
 using WaybillsAPI.Models;
 using WaybillsAPI.ReportsModels;
@@ -33,15 +34,7 @@ namespace WaybillsAPI.Controllers
             if (omnicommFuelReport.Code == 0)
             {
                 var fuelData = omnicommFuelReport.Data.VehicleDataList.First();
-                return new FuelFromOmnicomm()
-                {
-                    TransportName = fuelData.Name,
-                    StartFuel = fuelData.Fuel.StartVolume / 10 ?? 0d,
-                    FuelTopUp = fuelData.Fuel.Refuelling / 10 ?? 0d,
-                    EndFuel = fuelData.Fuel.EndVolume / 10 ?? 0d,
-                    FuelConsumption = fuelData.Fuel.FuelConsumption / 10 ?? 0d,
-                    Draining = fuelData.Fuel.Draining / 10 ?? 0d
-                };
+                return new FuelFromOmnicomm(fuelData);
             }
             else
             {
@@ -114,7 +107,7 @@ namespace WaybillsAPI.Controllers
             var transportsFuelMonthTotals = waybills
                 .GroupBy(x => x.TransportId)
                 .Select(x => new DetailedTransportFuelMonthTotal(getTransportDTO(x.Key), driversDTO, x))
-                .OrderBy(x => x.Transport.Name).ToList();
+                .OrderBy(x => Helper.PadNumbers(x.Transport.Name)).ToList();
 
             return transportsFuelMonthTotals;
         }

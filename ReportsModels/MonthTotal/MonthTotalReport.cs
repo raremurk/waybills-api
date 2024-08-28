@@ -1,4 +1,5 @@
-﻿using WaybillsAPI.Models;
+﻿using WaybillsAPI.Helpers;
+using WaybillsAPI.Models;
 
 namespace WaybillsAPI.ReportsModels.MonthTotal
 {
@@ -10,7 +11,7 @@ namespace WaybillsAPI.ReportsModels.MonthTotal
         {
             DetailedEntityMonthTotals = byDrivers ?
                 waybills.GroupBy(x => x.DriverId).Select(x => new DetailedEntityMonthTotal(x, x.First().Driver!)).OrderBy(x => x.EntityName) :
-                waybills.GroupBy(x => x.TransportId).Select(x => new DetailedEntityMonthTotal(x, x.First().Transport!)).OrderBy(x => x.EntityName);
+                waybills.GroupBy(x => x.TransportId).Select(x => new DetailedEntityMonthTotal(x, x.First().Transport!)).OrderBy(x => Helper.PadNumbers(x.EntityName));
 
             Initialize(DetailedEntityMonthTotals);
         }

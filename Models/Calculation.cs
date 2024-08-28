@@ -16,8 +16,8 @@ namespace WaybillsAPI.Models
         public Calculation(CalculationCreation calculationCreation)
         {
             Id = calculationCreation.Id;
-            Quantity = calculationCreation.Quantity;
-            Price = calculationCreation.Price;
+            Quantity = Math.Round(calculationCreation.Quantity, 3);
+            Price = Math.Round(calculationCreation.Price, 3);
             Sum = Math.Round(Quantity * Price, 2);
         }
     }

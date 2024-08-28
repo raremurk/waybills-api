@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WaybillsAPI.Context;
+using WaybillsAPI.Helpers;
 using WaybillsAPI.Models;
 using WaybillsAPI.ViewModels;
 
@@ -17,8 +18,9 @@ namespace WaybillsAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TransportDTO>>> GetTransport()
         {
-            var transport = await _context.Transport.OrderBy(x => x.Name).ToListAsync();
-            var transportDTO = _mapper.Map<List<Transport>, List<TransportDTO>>(transport);
+            var transport = await _context.Transport.ToListAsync();
+            var orderedTransport = transport.OrderBy(x => Helper.PadNumbers(x.Name)).ToList();
+            var transportDTO = _mapper.Map<List<Transport>, List<TransportDTO>>(orderedTransport);
             return transportDTO;
         }
 
@@ -90,7 +92,7 @@ namespace WaybillsAPI.Controllers
 
             if (_context.Waybills.Any(x => x.TransportId == id))
             {
-                return Problem("OBEMA", "",403);
+                return Problem("OBEMA", "", 403);
             }
 
             _context.Transport.Remove(transport);

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WaybillsAPI.Context;
+using WaybillsAPI.Helpers;
 using WaybillsAPI.Models;
 
 namespace WaybillsAPI.Controllers
@@ -14,7 +15,9 @@ namespace WaybillsAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Rate>>> GetRates()
         {
-            return await _context.Rates.OrderBy(x => x.Name).ToListAsync();
+            var rates = await _context.Rates.ToListAsync();
+            var orderedRates = rates.OrderBy(x => Helper.PadNumbers(x.Name)).ToList();
+            return orderedRates;
         }
 
         [HttpGet("{id}")]

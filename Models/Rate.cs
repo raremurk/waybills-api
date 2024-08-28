@@ -6,5 +6,6 @@
         public string Name { get; set; }
         public double Norm { get; set; }
         public double Value { get; set; }
+        public double FuelConsumption { get; set; }
     }
 }
