@@ -5,59 +5,58 @@ namespace WaybillsAPI.ReportsModels.Fuel.Transports
 {
     public class DetailedTransportFuelMonthTotal : TransportFuelMonthTotal
     {
-        public TransportDTO Transport { get; private set; }
-        public IEnumerable<TransportFuelSubTotal> SubTotals { get; private set; }
+        public TransportDTO Transport { get; init; }
+        public List<TransportFuelSubTotal> SubTotals { get; init; } = [];
 
-        public DetailedTransportFuelMonthTotal(TransportDTO transport, Dictionary<int, DriverDTO> driversDTO, IEnumerable<Waybill> waybills) : base(waybills)
+        public DetailedTransportFuelMonthTotal(IEnumerable<Waybill> waybills)
         {
-            Transport = transport;
+            if (waybills is null || !waybills.Any()) throw new ArgumentException("The collection of waybills is null or empty.");
 
-            var currentPeriodWaybills = new List<Waybill>();
-            var previousPeriodWaybills = new List<Waybill>();
-            foreach (var waybill in waybills.OrderBy(x => x.Date))
+            var transport = waybills.First().Transport ?? throw new ArgumentException("Waybills must include transport.");
+
+            if (waybills.Any(x => x.TransportId != transport.Id)) throw new ArgumentException("Waybills must belong to one transport.");
+
+            if (waybills.Any(x => x.Driver is null)) throw new ArgumentException("Waybills must include driver.");
+
+            Transport = new TransportDTO(transport);
+            var waybillsGroupedByMonths = waybills.OrderBy(x => x.Date).GroupBy(x => x.Date.ToString("MMyyyy"));
+            foreach (var group in waybillsGroupedByMonths)
             {
-                if (waybill.Date.Year == waybill.SalaryYear && waybill.Date.Month == waybill.SalaryMonth)
+                var workStreak = new List<Waybill> { group.First() };
+                foreach (var waybill in group.Skip(1))
                 {
-                    currentPeriodWaybills.Add(waybill);
-                }
-                else
-                {
-                    previousPeriodWaybills.Add(waybill);
-                }
-            }
-
-            var allPeriodWaybills = new List<List<Waybill>>();
-            if (currentPeriodWaybills.Count != 0)
-            {
-                allPeriodWaybills.Add(currentPeriodWaybills);
-            }
-
-            if (previousPeriodWaybills.Count != 0)
-            {
-                allPeriodWaybills.Add(previousPeriodWaybills);
-            }
-
-            var subTotals = new List<TransportFuelSubTotal>();
-
-            foreach (var periodWaybilss in allPeriodWaybills)
-            {
-                var currentDriverWaybills = new List<Waybill>() { periodWaybilss[0] };
-                for (int i = 1; i < periodWaybilss.Count; i++)
-                {
-                    if (periodWaybilss[i].DriverId == periodWaybilss[i - 1].DriverId)
+                    if (waybill.DriverId != workStreak.Last().Driver!.Id)
                     {
-                        currentDriverWaybills.Add(periodWaybilss[i]);
+                        SubTotals.Add(new SubTotal(new DriverDTO(workStreak.Last().Driver!), workStreak));
+                        workStreak.Clear();
                     }
-                    else
-                    {
-                        subTotals.Add(new TransportFuelSubTotal(driversDTO[periodWaybilss[i - 1].DriverId], currentDriverWaybills));
-                        currentDriverWaybills.Clear();
-                        currentDriverWaybills.Add(periodWaybilss[i]);
-                    }
+                    workStreak.Add(waybill);
                 }
-                subTotals.Add(new TransportFuelSubTotal(driversDTO[periodWaybilss.Last().DriverId], currentDriverWaybills));
+                SubTotals.Add(new SubTotal(new DriverDTO(workStreak.Last().Driver!), workStreak));
             }
-            SubTotals = subTotals;
+            StartFuel = waybillsGroupedByMonths.Last().First().StartFuel;
+            InitializeFromSubTotals();
+        }
+
+        private void InitializeFromSubTotals()
+        {
+            FuelTopUp = SubTotals.Sum(x => x.FuelTopUp);
+            FactFuelConsumption = SubTotals.Sum(x => x.FactFuelConsumption);
+            EndFuel = SubTotals.Last().EndFuel;
+            Deviation = Math.Abs(StartFuel + FuelTopUp - FactFuelConsumption - EndFuel);
+        }
+
+
+        private class SubTotal : TransportFuelSubTotal
+        {
+            public SubTotal(DriverDTO driver, IEnumerable<Waybill> waybills) : base(driver)
+            {
+                StartFuel = waybills.First().StartFuel;
+                FuelTopUp = waybills.Sum(x => x.FuelTopUp);
+                FactFuelConsumption = waybills.Sum(x => x.FactFuelConsumption);
+                EndFuel = waybills.Last().EndFuel;
+                Deviation = Math.Abs(StartFuel + FuelTopUp - FactFuelConsumption - EndFuel);
+            }
         }
     }
 }

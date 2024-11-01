@@ -1,10 +1,9 @@
-﻿using WaybillsAPI.Models;
-using WaybillsAPI.ViewModels;
+﻿using WaybillsAPI.ViewModels;
 
 namespace WaybillsAPI.ReportsModels.Fuel.Drivers
 {
-    public class DriverFuelSubTotal(TransportDTO transport, IEnumerable<Waybill> waybills) : DriverFuelMonthTotal(waybills)
+    public abstract class DriverFuelSubTotal(TransportDTO transport) : DriverFuelMonthTotal
     {
-        public TransportDTO Transport { get; private set; } = transport;
+        public TransportDTO Transport { get; protected set; } = transport ?? throw new ArgumentNullException(nameof(transport));
     }
 }

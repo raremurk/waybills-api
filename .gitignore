@@ -485,3 +485,8 @@ $RECYCLE.BIN/
 
 # Files with Omnicomm login and JWT
 /OmnicommLoginData
+
+# DB
+Waybills.db
+Waybills.db-shm
+Waybills.db-wal

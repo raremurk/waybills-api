@@ -1,11 +1,24 @@
-﻿namespace WaybillsAPI.ViewModels
+﻿using WaybillsAPI.Models;
+
+namespace WaybillsAPI.ViewModels
 {
     public class TransportDTO
     {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public int Code { get; set; }
-        public double Coefficient { get; set; }
-        public int OmnicommId { get; set; }
+        public int Id { get; init; }
+        public string Name { get; init; } = "";
+        public int Code { get; init; }
+        public double Coefficient { get; init; }
+        public int OmnicommId { get; init; }
+
+        private TransportDTO() { }
+        public TransportDTO(Transport transport)
+        {
+            ArgumentNullException.ThrowIfNull(transport);
+            Id = transport.Id;
+            Name = transport.Name;
+            Code = transport.Code;
+            Coefficient = transport.Coefficient;
+            OmnicommId = transport.OmnicommId;
+        }
     }
 }

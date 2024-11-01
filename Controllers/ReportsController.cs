@@ -1,36 +1,32 @@
-﻿using AutoMapper;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WaybillsAPI.Context;
 using WaybillsAPI.Helpers;
 using WaybillsAPI.Interfaces;
-using WaybillsAPI.Models;
 using WaybillsAPI.ReportsModels;
 using WaybillsAPI.ReportsModels.CostPrice;
 using WaybillsAPI.ReportsModels.Fuel.Drivers;
 using WaybillsAPI.ReportsModels.Fuel.Transports;
 using WaybillsAPI.ReportsModels.MonthTotal;
-using WaybillsAPI.ViewModels;
 
 namespace WaybillsAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class ReportsController(WaybillsContext context, IMapper mapper, IOmnicommFuelService omnicommFuelService) : ControllerBase
+    public class ReportsController(WaybillsContext context, IOmnicommFuelService omnicommFuelService) : ControllerBase
     {
         private readonly WaybillsContext _context = context;
-        private readonly IMapper _mapper = mapper;
         private readonly IOmnicommFuelService _omnicommFuelService = omnicommFuelService;
 
-        [HttpGet("omnicommFuel/{data}/{omnicommId}")]
-        public async Task<ActionResult<FuelFromOmnicomm>> GetOmnicommFuel(DateOnly data, int omnicommId)
+        [HttpGet("omnicommFuel/{date}/{omnicommId}")]
+        public async Task<ActionResult<FuelFromOmnicomm>> GetOmnicommFuel(DateOnly date, int omnicommId)
         {
             if (omnicommId == 0)
             {
                 return Problem("Машина не подключена к Omnicomm");
             }
 
-            var omnicommFuelReport = await _omnicommFuelService.GetOmnicommFuelReport(data, omnicommId);
+            var omnicommFuelReport = await _omnicommFuelService.GetOmnicommFuelReport(date, omnicommId);
             if (omnicommFuelReport.Code == 0)
             {
                 var fuelData = omnicommFuelReport.Data.VehicleDataList.First();
@@ -76,17 +72,16 @@ namespace WaybillsAPI.Controllers
         public async Task<ActionResult<IEnumerable<DetailedDriverFuelMonthTotal>>> GetDriversFuelMonthTotal(int year, int month)
         {
             var waybills = await _context.Waybills
-                .Where(x => x.SalaryYear == year && x.SalaryMonth == month).ToListAsync();
-
-            var drivers = await _context.Drivers.ToDictionaryAsync(x => x.Id);
-            var transports = await _context.Transport.ToDictionaryAsync(x => x.Id);
-            DriverDTO getDriverDTO(int driverId) => _mapper.Map<Driver, DriverDTO>(drivers[driverId]);
-            TransportDTO getTransportDTO(int transportId) => _mapper.Map<Transport, TransportDTO>(transports[transportId]);
+                .Where(x => x.SalaryYear == year && x.SalaryMonth == month)
+                .Include(x => x.Driver)
+                .Include(x => x.Transport)
+                .ToListAsync();
 
             var driversFuelMonthTotals = waybills
                 .GroupBy(x => x.DriverId)
-                .Select(x => new DetailedDriverFuelMonthTotal(getDriverDTO(x.Key), x.GroupBy(x => x.TransportId).Select(x => new DriverFuelSubTotal(getTransportDTO(x.Key), x))))
-                .OrderBy(x => x.Driver.LastName).ToList();
+                .Select(x => new DetailedDriverFuelMonthTotal(x))
+                .OrderBy(x => x.Driver.LastName)
+                .ToList();
 
             return driversFuelMonthTotals;
         }
@@ -96,18 +91,15 @@ namespace WaybillsAPI.Controllers
         {
             var waybills = await _context.Waybills
                 .Where(x => x.SalaryYear == year && x.SalaryMonth == month)
-                .Include(x => x.Driver).ToListAsync();
-
-            var drivers = await _context.Drivers.ToDictionaryAsync(x => x.Id);
-            var driversDTO = _mapper.Map<Dictionary<int, Driver>, Dictionary<int, DriverDTO>>(drivers);
-
-            var transports = await _context.Transport.ToDictionaryAsync(x => x.Id);
-            TransportDTO getTransportDTO(int transportId) => _mapper.Map<Transport, TransportDTO>(transports[transportId]);
+                .Include(x => x.Driver)
+                .Include(x => x.Transport)
+                .ToListAsync();
 
             var transportsFuelMonthTotals = waybills
                 .GroupBy(x => x.TransportId)
-                .Select(x => new DetailedTransportFuelMonthTotal(getTransportDTO(x.Key), driversDTO, x))
-                .OrderBy(x => Helper.PadNumbers(x.Transport.Name)).ToList();
+                .Select(x => new DetailedTransportFuelMonthTotal(x))
+                .OrderBy(x => Helper.PadNumbers(x.Transport.Name))
+                .ToList();
 
             return transportsFuelMonthTotals;
         }
