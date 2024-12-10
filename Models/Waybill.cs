@@ -1,5 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using WaybillsAPI.Context;
 using WaybillsAPI.CreationModels;
+using WaybillsAPI.Interfaces;
 
 namespace WaybillsAPI.Models
 {
@@ -39,13 +41,37 @@ namespace WaybillsAPI.Models
         public List<Calculation> Calculations { get; private set; } = [];
 
         private Waybill() { }
-        public Waybill(WaybillCreation creationModel, int salaryYear, int salaryMonth, double transportCoefficient)
+        public Waybill(WaybillsContext context, ISalaryPeriodService salaryPeriodService, WaybillCreation creationModel)
         {
-            Id = creationModel.Id;
+            var (Year, Month) = salaryPeriodService.GetSalaryPeriod();
+            if (context.Waybills.Any(x => x.Number == creationModel.Number && x.SalaryYear == Year))
+            {
+                throw new ArgumentException($"Путевой лист №{creationModel.Number} уже существует в {Year} году.");
+            }
+
+            SalaryYear = Year;
+            SalaryMonth = Month;
+            SetProperties(context, salaryPeriodService, creationModel);
+        }
+
+        public void Edit(WaybillsContext context, ISalaryPeriodService salaryPeriodService, WaybillCreation creationModel)
+        {
+            if (context.Waybills.Any(x => x.Id != Id && x.Number == creationModel.Number && x.SalaryYear == SalaryYear))
+            {
+                throw new ArgumentException($"Путевой лист №{creationModel.Number} уже существует в {SalaryYear} году.");
+            }
+
+            SetProperties(context, salaryPeriodService, creationModel);
+        }
+
+        private void SetProperties(WaybillsContext context, ISalaryPeriodService salaryPeriodService, WaybillCreation creationModel)
+        {
+            var maxWaybillDate = salaryPeriodService.GetMaxWaybillDate();
+            Date = creationModel.Date <= maxWaybillDate ? creationModel.Date : throw new ArgumentException("Дата путевого листа больше допустимого.");
+            Driver = context.Drivers.Find(creationModel.DriverId) ?? throw new ArgumentException("Водителя с заданным ID не существует.");
+            Transport = context.Transport.Find(creationModel.TransportId) ?? throw new ArgumentException("Транспорта с заданным ID не существует.");
+
             Number = creationModel.Number;
-            SalaryYear = salaryYear;
-            SalaryMonth = salaryMonth;
-            Date = creationModel.Date;
             Days = creationModel.Days;
             Hours = creationModel.Hours;
             StartFuel = creationModel.StartFuel;
@@ -54,7 +80,7 @@ namespace WaybillsAPI.Models
             DriverId = creationModel.DriverId;
             TransportId = creationModel.TransportId;
 
-            Operations = creationModel.Operations.Select(x => new Operation(x, transportCoefficient)).ToList();
+            Operations = creationModel.Operations.Select(x => new Operation(x, Transport.Coefficient)).ToList();
             Calculations = creationModel.Calculations.Select(x => new Calculation(x)).ToList();
 
             FactFuelConsumption = StartFuel + FuelTopUp - EndFuel;

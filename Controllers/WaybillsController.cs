@@ -13,11 +13,11 @@ namespace WaybillsAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class WaybillsController(WaybillsContext context, IMapper mapper, IDateService dateService) : ControllerBase
+    public class WaybillsController(WaybillsContext context, IMapper mapper, ISalaryPeriodService salaryPeriodService) : ControllerBase
     {
         private readonly WaybillsContext _context = context;
         private readonly IMapper _mapper = mapper;
-        private readonly IDateService _dateService = dateService;
+        private readonly ISalaryPeriodService _salaryPeriodService = salaryPeriodService;
 
         [HttpGet("{year}/{month}/{driverId?}")]
         public async Task<ActionResult<IEnumerable<ShortWaybillDTO>>> GetWaybills(int year, int month, int driverId = 0)
@@ -76,42 +76,25 @@ namespace WaybillsAPI.Controllers
                 return BadRequest();
             }
 
-            var existingWaybill = _context.Waybills
-                .Include(p => p.Operations)
-                .Include(p => p.Calculations)
-                .FirstOrDefault(p => p.Id == id);
-            if (existingWaybill is null)
+            var existingWaybill = await _context.Waybills
+                .Include(x => x.Operations)
+                .Include(x => x.Calculations)
+                .FirstOrDefaultAsync(x => x.Id == id);
+            if (existingWaybill == null)
             {
                 return NotFound();
             }
 
-            var modelIsValid = CreationModelIsValid(waybillCreation);
-            if (!modelIsValid.Item1)
-            {
-                return Problem(modelIsValid.Item2);
-            }
-
-            if (_context.Waybills.Any(x => x.Id != existingWaybill.Id && x.Number == waybillCreation.Number && x.SalaryYear == existingWaybill.SalaryYear))
-            {
-                return Problem($"Путевой лист №{waybillCreation.Number} уже существует в {existingWaybill.SalaryYear} году.");
-            }
-
-            var waybill = new Waybill(waybillCreation, existingWaybill.SalaryYear, existingWaybill.SalaryMonth, modelIsValid.Item3);
-
-            _context.Entry(existingWaybill).CurrentValues.SetValues(waybill);
-            existingWaybill.Operations.Clear();
-            existingWaybill.Calculations.Clear();
-            existingWaybill.Operations.AddRange(waybill.Operations);
-            existingWaybill.Calculations.AddRange(waybill.Calculations);
-
             try
             {
-                await _context.SaveChangesAsync();
+                existingWaybill.Edit(_context, _salaryPeriodService, waybillCreation);
             }
-            catch (DbUpdateConcurrencyException)
+            catch (ArgumentException exception)
             {
-                throw;
+                return Problem(exception.Message);
             }
+
+            await _context.SaveChangesAsync();
 
             var editedWaybill = _mapper.Map<Waybill, WaybillDTO>(existingWaybill);
 
@@ -121,19 +104,15 @@ namespace WaybillsAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<WaybillDTO>> PostWaybill(WaybillCreation waybillCreation)
         {
-            var modelIsValid = CreationModelIsValid(waybillCreation);
-            if (!modelIsValid.Item1)
+            Waybill waybill;
+            try
             {
-                return Problem(modelIsValid.Item2);
+                waybill = new Waybill(_context, _salaryPeriodService, waybillCreation);
             }
-
-            var salaryPeriod = _dateService.GetSalaryPeriod();
-            if (_context.Waybills.Any(x => x.Number == waybillCreation.Number && x.SalaryYear == salaryPeriod.Item1))
+            catch (ArgumentException exception)
             {
-                return Problem($"Путевой лист №{waybillCreation.Number} уже существует в {salaryPeriod.Item1} году.");
+                return Problem(exception.Message);
             }
-
-            var waybill = new Waybill(waybillCreation, salaryPeriod.Item1, salaryPeriod.Item2, modelIsValid.Item3);
 
             _context.Waybills.Add(waybill);
             try
@@ -163,23 +142,6 @@ namespace WaybillsAPI.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
-        }
-
-        private (bool, string, double) CreationModelIsValid(WaybillCreation waybillCreation)
-        {
-            var driver = _context.Drivers.Find(waybillCreation.DriverId);
-            if (driver is null)
-            {
-                return (false, "Водителя с заданным ID не существует.", 0d);
-            }
-
-            var transport = _context.Transport.Find(waybillCreation.TransportId);
-            if (transport is null)
-            {
-                return (false, "Транспорта с заданным ID не существует.", 0d);
-            }
-
-            return (true, "", transport.Coefficient);
         }
     }
 }

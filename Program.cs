@@ -10,7 +10,7 @@ builder.Services.AddAutoMapper(typeof(MappingProfile));
 builder.Services.AddControllers();
 builder.Services.AddHttpClient();
 
-builder.Services.AddSingleton<IDateService, DateService>();
+builder.Services.AddSingleton<ISalaryPeriodService, SalaryPeriodService>();
 builder.Services.AddSingleton<IExcelWriter, ExcelWriter>();
 builder.Services.AddSingleton<IOmnicommFuelService, OmnicommFuelService>();
 

@@ -256,7 +256,7 @@ namespace WaybillsAPI.Services
 
             foreach (var driverWaybills in groupedWaybills)
             {
-                var driverWaybillsHeight = driverWaybills.Count() * 9;
+                var driverWaybillsHeight = driverWaybills.Count() * 9 + 9;
                 if (pageHeight + driverWaybillsHeight > maxPageHeight)
                 {
                     sheet.Row(index).PageBreak = true;
